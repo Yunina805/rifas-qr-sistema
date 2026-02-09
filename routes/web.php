@@ -43,6 +43,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::view('/boletos', 'admin.boletos')->name('boletos');
     Route::view('/premios', 'admin.premios')->name('premios');
     Route::view('/reportes', 'admin.reportes')->name('reportes');
+
+    // Escáner de Boletos
+    Route::get('/escaner', [RifaController::class, 'scanView'])->name('escaner.view');
+    Route::post('/escaner/validar', [RifaController::class, 'validarBoleto'])->name('escaner.validar');
 });
 
 /*

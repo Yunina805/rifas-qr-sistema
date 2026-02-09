@@ -2,45 +2,40 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Rifa extends Model
 {
-    protected $table = 'rifas';
+    use HasFactory;
 
     protected $fillable = [
         'nombre',
         'sede',
-        'fecha_inicio',
-        'fecha_fin',
+        'total_boletos',
         'precio_boleto',
         'costo_boleto',
-        'total_boletos',
-        'boletos_vendidos',
         'estado',
+        'boletos_vendidos'
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Estados de la rifa
-    |--------------------------------------------------------------------------
-    */
+    protected $casts = [
+        'precio_boleto' => 'decimal:2',
+        'costo_boleto'  => 'decimal:2',
+        'total_boletos' => 'integer',
+        'boletos_vendidos' => 'integer',
+    ];
 
-    public function activar()
+    /**
+     * Relación Principal: Una Rifa tiene muchos Boletos.
+     */
+    public function boletos()
     {
-        $this->estado = 'activa';
-        $this->save();
-    }
-
-    public function finalizar()
-    {
-        $this->estado = 'finalizada';
-        $this->save();
+        return $this->hasMany(Boleto::class);
     }
 
     public function lotes()
     {
-        return $this->hasMany(Lote::class);
+        return $this->boletos();
     }
-
 }

@@ -4,40 +4,34 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rifa;
-use App\Models\Lote;
 use Illuminate\Http\Request;
 
 class LoteController extends Controller
 {
-    public function index(Rifa $rifa)
+    public function index(Request $request, Rifa $rifa)
     {
-        $lotes = $rifa->lotes()->orderBy('id')->get();
+        // 1. Iniciamos la consulta usando la relación 'boletos'
+        // Gracias al alias que pusimos en el Modelo, esto funciona perfecto.
+        $query = $rifa->boletos();
 
-        return view('admin.lotes', [
-            'rifa' => $rifa,
-            'lotes' => $lotes,
-        ]);
-    }
+        // 2. Filtro: Si el admin busca por número de folio
+        if ($request->has('search') && $request->search != '') {
+            $query->where('folio', 'like', '%' . $request->search . '%');
+        }
 
-    public function store(Request $request, Rifa $rifa)
-    {
-        $request->validate([
-            'codigo' => 'required|string',
-            'folio_inicio' => 'required|integer',
-            'folio_fin' => 'required|integer|gte:folio_inicio',
-        ]);
+        // 3. Filtro: Por estado (Ganadores, vendidos, disponibles)
+        if ($request->has('estado') && $request->estado != '') {
+            if($request->estado == 'ganadores') {
+                $query->where('es_ganador', true);
+            } else {
+                $query->where('estado', $request->estado);
+            }
+        }
 
-        $total = ($request->folio_fin - $request->folio_inicio) + 1;
+        // 4. Paginamos los resultados (50 por página)
+        $boletos = $query->paginate(50);
 
-        Lote::create([
-            'rifa_id' => $rifa->id,
-            'codigo' => $request->codigo,
-            'folio_inicio' => $request->folio_inicio,
-            'folio_fin' => $request->folio_fin,
-            'total_boletos' => $total,
-            'estado' => 'almacen',
-        ]);
-
-        return redirect()->back();
+        // 5. ENVIAMOS LA VARIABLE $boletos A LA VISTA (Esto es lo que faltaba)
+        return view('admin.lotes', compact('rifa', 'boletos'));
     }
 }
