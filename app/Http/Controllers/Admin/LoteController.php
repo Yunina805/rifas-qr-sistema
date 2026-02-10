@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Rifa;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class LoteController extends Controller
 {
@@ -33,5 +34,24 @@ class LoteController extends Controller
 
         // 5. ENVIAMOS LA VARIABLE $boletos A LA VISTA (Esto es lo que faltaba)
         return view('admin.lotes', compact('rifa', 'boletos'));
+    }
+
+    public function imprimir(Rifa $rifa)
+    {
+        // Obtenemos todos los boletos
+        // Usamos 'chunk' si fueran demasiados, pero para 1000 el PDF aguanta bien.
+        // Aumentamos el tiempo de ejecución por si son muchos
+        set_time_limit(300); 
+
+        $boletos = $rifa->boletos()->get();
+
+        // Cargamos la vista del PDF (la crearemos en el siguiente paso)
+        $pdf = Pdf::loadView('admin.pdf.boletos', compact('rifa', 'boletos'));
+
+        // Configuración de papel (Carta) y orientación
+        $pdf->setPaper('letter', 'portrait');
+
+        // Descargamos el archivo
+        return $pdf->stream('Boletos_Rifa_' . $rifa->id . '.pdf');
     }
 }

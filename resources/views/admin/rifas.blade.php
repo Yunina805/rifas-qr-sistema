@@ -2,251 +2,284 @@
 
 @section('title', 'Admin · Gestión de Rifas')
 
-@section('context_title', 'Gestión de Rifas')
-@section('context_subtitle', 'Crea, edita y monitorea tus sorteos')
+@section('context_title', 'Rifas')
+@section('context_subtitle', 'Listado y configuración de eventos')
 
 @push('head')
 <style>
-    /* Transiciones suaves para el modal */
-    .step-content {
-        display: none;
-        animation: fadeIn 0.3s ease-in-out;
-    }
-    .step-content.active {
-        display: block;
-    }
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(5px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
+    /* Animación sutil para el modal */
+    #rifaModal { transition: opacity 0.2s ease-in-out; }
+    #rifaModal.hidden { opacity: 0; pointer-events: none; }
+    #rifaModal:not(.hidden) { opacity: 1; pointer-events: auto; }
+    
+    #rifaModalContent { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); transform: scale(0.95); opacity: 0; }
+    #rifaModal:not(.hidden) #rifaModalContent { transform: scale(1); opacity: 1; }
 
-    /* Ocultar flechas en inputs numéricos */
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
+    /* Eliminar flechas de number inputs */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 </style>
 @endpush
 
-<!-- Modal Nueva / Editar Rifa -->
-<div id="rifaModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4 transition-opacity">
-    <div class="w-full max-w-lg transform transition-all"> 
-        <form
-            id="rifaForm"
-            method="POST"
-            action="{{ route('admin.rifas.store') }}"
-            class="bg-white rounded-xl shadow-2xl overflow-hidden"
-        >
-            @csrf
-            <input type="hidden" name="_method" value="">
-            <input type="hidden" name="rifa_id" id="rifa_id">
+@section('content')
 
-            <div class="flex justify-between items-center px-6 py-4 border-b bg-gray-50">
-                <h3 id="rifaModalTitle" class="text-lg font-bold text-gray-800">
-                    Nueva Rifa
-                </h3>
-                <button type="button" onclick="closeRifaModal()" class="text-gray-400 hover:text-red-500 transition-colors text-2xl leading-none">
-                    &times;
-                </button>
+<div class="space-y-6">
+
+    {{-- HEADER DE LA SECCIÓN --}}
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <span>Gestión</span>
+                <i class="ri-arrow-right-s-line"></i>
+                <span class="font-medium text-slate-700">Eventos</span>
             </div>
+            <h1 class="font-display font-bold text-xl text-slate-900 tracking-tight">Rifas y Sorteos</h1>
+        </div>
+        
+        <div class="flex gap-3">
+            <button class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm">
+                <i class="ri-filter-3-line mr-1"></i> Filtros
+            </button>
 
-            <div class="p-6 space-y-4">
-                
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Nombre del Evento</label>
-                    <input id="rifa_nombre" type="text" name="nombre" placeholder="Ej. Gran Rifa Navideña" required
-                        class="w-full text-sm border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
-                </div>
-                
-                <div>
-                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Sede / Lugar</label>
-                    <input id="rifa_sede" type="text" name="sede" placeholder="Ej. Plaza Principal"
-                        class="w-full text-sm border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
-                </div>
+            <button onclick="openRifaModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-all shadow-sm flex items-center gap-2">
+                <i class="ri-add-line"></i>
+                <span>Crear Rifa</span>
+            </button>
+        </div>
+    </div>
 
-                <div class="grid grid-cols-3 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Boletos</label>
-                        <input id="rifa_total" type="number" name="total_boletos" placeholder="1000" min="1" required
-                            class="w-full text-sm border-gray-300 rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-blue-500 shadow-sm">
-                    </div>
-                    <div>
-                         <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Venta ($)</label>
-                        <input id="rifa_precio" type="number" name="precio_boleto" placeholder="0.00" step="0.01" required
-                            class="w-full text-sm border-gray-300 rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-blue-500 shadow-sm">
-                    </div>
-                    <div>
-                         <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Costo ($)</label>
-                        <input id="rifa_costo" type="number" name="costo_boleto" placeholder="0.00" step="0.01" required
-                            class="w-full text-sm border-gray-300 rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-blue-500 shadow-sm">
-                    </div>
-                </div>
+    {{-- TABLA DE DATOS --}}
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        
+        {{-- Toolbar de la tabla --}}
+        <div class="p-4 border-b border-slate-100 flex gap-4">
+            <div class="relative flex-1 max-w-sm">
+                <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" 
+                       placeholder="Buscar por nombre, sede..." 
+                       class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all placeholder:text-slate-400 text-slate-700">
+            </div>
+        </div>
 
-                <div class="pt-2">
-                    <div class="flex justify-between items-center mb-2">
-                        <h4 class="text-sm font-bold text-gray-700">Premios</h4>
-                        <button type="button" onclick="agregarFilaPremio()" class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
-                            <span class="text-lg">+</span> Agregar
-                        </button>
-                    </div>
-                    
-                    <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                        <div class="grid grid-cols-12 gap-2 text-[10px] font-bold text-gray-500 uppercase mb-1">
-                            <div class="col-span-3">Cant.</div>
-                            <div class="col-span-4">Monto ($)</div>
-                            <div class="col-span-4">Descripción</div>
-                            <div class="col-span-1"></div>
-                        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead>
+                    <tr class="bg-slate-50/50 border-b border-slate-200">
+                        <th class="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Detalle del Evento</th>
+                        <th class="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estado</th>
+                        <th class="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Progreso</th>
+                        <th class="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Métricas</th>
+                        <th class="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                @forelse ($rifas as $rifa)
+                    <tr class="group hover:bg-slate-50/80 transition-colors">
                         
-                        <div id="contenedor-premios" class="space-y-2 max-h-32 overflow-y-auto pr-1">
+                        {{-- Evento --}}
+                        <td class="px-6 py-4">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200 mt-0.5">
+                                    <span class="font-bold text-xs">#{{ $rifa->id }}</span>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{{ $rifa->nombre }}</p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <p class="text-xs text-slate-500 flex items-center gap-1">
+                                            <i class="ri-map-pin-line text-slate-400"></i> {{ $rifa->sede ?? 'Virtual' }}
+                                        </p>
+                                        <span class="text-slate-300">•</span>
+                                        <p class="text-xs text-slate-500 font-mono">${{ number_format($rifa->precio_boleto, 2) }}</p>
+                                    </div>
+                                </div>
                             </div>
-                    </div>
-                    <p class="mt-2 text-[10px] text-gray-400 text-center">
-                        Los boletos no premiados serán perdedores automáticamente.
-                    </p>
-                </div>
+                        </td>
 
-            </div>
+                        {{-- Estado (Estilo Pill con Dot) --}}
+                        <td class="px-6 py-4">
+                            @php
+                                $statusConfig = match($rifa->estado) {
+                                    'activa' => ['bg' => 'bg-emerald-500', 'text' => 'text-emerald-700', 'label' => 'Activa', 'border' => 'border-emerald-200', 'bg_pill' => 'bg-emerald-50'],
+                                    'finalizada' => ['bg' => 'bg-slate-500', 'text' => 'text-slate-600', 'label' => 'Finalizada', 'border' => 'border-slate-200', 'bg_pill' => 'bg-slate-50'],
+                                    default => ['bg' => 'bg-amber-500', 'text' => 'text-amber-700', 'label' => 'Borrador', 'border' => 'border-amber-200', 'bg_pill' => 'bg-amber-50'],
+                                };
+                            @endphp
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border {{ $statusConfig['border'] }} {{ $statusConfig['bg_pill'] }} {{ $statusConfig['text'] }}">
+                                <span class="w-1.5 h-1.5 rounded-full {{ $statusConfig['bg'] }}"></span>
+                                {{ $statusConfig['label'] }}
+                            </span>
+                        </td>
 
-            <div class="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
-                <button type="button" onclick="closeRifaModal()" class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors">
-                    Cancelar
-                </button>
-                <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors">
-                    Guardar Rifa
-                </button>
+                        {{-- Progreso (Barra Fina) --}}
+                        <td class="px-6 py-4 w-48">
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="font-medium text-slate-700">{{ number_format($rifa->boletos_vendidos) }} <span class="text-slate-400 font-normal">/ {{ number_format($rifa->total_boletos) }}</span></span>
+                                @php
+                                    $percent = $rifa->total_boletos > 0 ? ($rifa->boletos_vendidos / $rifa->total_boletos) * 100 : 0;
+                                @endphp
+                                <span class="text-slate-500">{{ round($percent) }}%</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-slate-900 rounded-full" style="width: {{ $percent }}%"></div>
+                            </div>
+                        </td>
+
+                        {{-- Métricas Simples --}}
+                        <td class="px-6 py-4 text-right">
+                             <p class="text-xs font-bold text-slate-700">
+                                ${{ number_format($rifa->boletos_vendidos * $rifa->precio_boleto) }}
+                             </p>
+                             <p class="text-[10px] text-slate-400 uppercase tracking-wide">Recaudado</p>
+                        </td>
+
+                        {{-- Acciones --}}
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="editarRifa({{ $rifa->id }})" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors" title="Editar">
+                                    <i class="ri-settings-3-line text-lg"></i>
+                                </button>
+                                <a href="{{ route('admin.rifas.lotes', $rifa) }}" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Ver Boletos">
+                                    <i class="ri-coupon-line text-lg"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center">
+                                <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                    <i class="ri-inbox-line text-xl text-slate-400"></i>
+                                </div>
+                                <p class="text-sm font-medium text-slate-900">No hay rifas registradas</p>
+                                <p class="text-xs text-slate-500 mt-1">Crea una nueva rifa para comenzar a vender.</p>
+                            </div>
+                        </td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+        
+        {{-- Paginación (Placeholder) --}}
+        <div class="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
+            <span>Mostrando {{ $rifas->count() }} resultados</span>
+            <div class="flex gap-2">
+                <button class="hover:text-slate-800 disabled:opacity-50" disabled>Anterior</button>
+                <button class="hover:text-slate-800 disabled:opacity-50" disabled>Siguiente</button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
-@section('content')
+{{-- MODAL REFINADO --}}
+<div id="rifaModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    
+    {{-- Backdrop --}}
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity" onclick="closeRifaModal()"></div>
 
-<div class="space-y-8">
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            
+            {{-- Content --}}
+            <div id="rifaModalContent" class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+                
+                <form id="rifaForm" method="POST" action="{{ route('admin.rifas.store') }}">
+                    @csrf
+                    <input type="hidden" name="_method" value="">
+                    <input type="hidden" name="rifa_id" id="rifa_id">
 
-    {{-- Header acción --}}
-    <div class="flex justify-between items-center">
-        <button
-            type="button"
-            onclick="openRifaModal()"
-            class="bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-            + Nueva Rifa
-        </button>
-    </div>
-
-    {{-- Buscador --}}
-    <div class="rounded-2xl bg-white p-3 shadow-sm border border-slate-200">
-        <input
-            type="text"
-            placeholder="Buscar rifa, folio o cliente..."
-            class="w-full rounded-xl bg-slate-50 py-2.5 px-4 text-sm ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500"
-        >
-    </div>
-
-    {{-- Tabla --}}
-    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table class="w-full text-left text-sm">
-
-            <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
-                <tr>
-                    <th class="px-6 py-4">Evento</th>
-                    <th class="px-6 py-4 text-center">Estado</th>
-                    <th class="px-6 py-4 text-center">Inventario</th>
-                    <th class="px-6 py-4 text-center">Escaneados</th>
-                    <th class="px-6 py-4 text-right"></th>
-                </tr>
-            </thead>
-
-            <tbody class="divide-y divide-slate-100">
-
-            @forelse ($rifas as $rifa)
-                <tr class="hover:bg-slate-50 transition">
-
-                    <td class="px-6 py-4 font-semibold">
-                        {{ $rifa->nombre }}
-                        <div class="text-xs text-slate-400">
-                            {{ $rifa->sede ?? 'Sin sede' }}
+                    {{-- Header Limpio --}}
+                    <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white">
+                        <div>
+                            <h3 id="rifaModalTitle" class="text-base font-bold text-slate-900 leading-none">Nueva Rifa</h3>
+                            <p class="text-xs text-slate-500 mt-1">Ingresa los detalles básicos del sorteo.</p>
                         </div>
-                    </td>
-
-                    <td class="px-6 py-4 text-center">
-                        <span class="px-3 py-1 rounded-full text-xs font-bold
-                            @if($rifa->estado === 'activa') bg-green-100 text-green-700
-                            @elseif($rifa->estado === 'finalizada') bg-red-100 text-red-700
-                            @else bg-gray-100 text-gray-600
-                            @endif">
-                            {{ ucfirst($rifa->estado) }}
-                        </span>
-                    </td>
-
-                    <td class="px-6 py-4 text-center">
-                        {{ $rifa->boletos_vendidos }} / {{ $rifa->total_boletos }}
-                    </td>
-
-                    <td class="px-6 py-4 text-center text-slate-500">
-                        0
-                    </td>
-
-                    <td class="px-6 py-4 text-right space-x-3">
-
-                        <button
-                            onclick="editarRifa({{ $rifa->id }})"
-                            class="text-blue-600 hover:underline text-sm"
-                        >
-                            Editar
+                        <button type="button" onclick="closeRifaModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors">
+                            <i class="ri-close-line text-xl"></i>
                         </button>
+                    </div>
 
-                       <td class="px-6 py-4 text-right space-x-2">
+                    {{-- Body --}}
+                    <div class="p-6 space-y-5">
+                        
+                        {{-- Grupo 1: Info General --}}
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nombre del Evento</label>
+                                <input type="text" name="nombre" id="rifa_nombre" placeholder="Ej. Gran Sorteo Anual" required
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400">
+                            </div>
 
-                            <a href="{{ route('admin.rifas.lotes', $rifa) }}"
-                            class="text-blue-600 hover:underline text-sm font-medium">
-                                Lotes
-                            </a>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Sede / Ubicación</label>
+                                <div class="relative">
+                                    <i class="ri-map-pin-line absolute left-3 top-2 text-slate-400"></i>
+                                    <input type="text" name="sede" id="rifa_sede" placeholder="Ej. Auditorio Principal"
+                                           class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400">
+                                </div>
+                            </div>
+                        </div>
 
-                            @if($rifa->estado === 'borrador')
-                                <form method="POST" action="{{ route('admin.rifas.activar', $rifa) }}" class="inline">
-                                    @csrf
-                                    <button class="text-green-600 hover:underline text-sm font-medium">
-                                        Activar
-                                    </button>
-                                </form>
-                            @endif
+                        <hr class="border-slate-100">
 
-                        </td>
+                        {{-- Grupo 2: Datos Económicos --}}
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Boletos Totales</label>
+                                <input type="number" name="total_boletos" id="rifa_total" placeholder="1000" min="1" required
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white transition-all font-mono text-slate-800">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Precio Venta</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2 text-slate-400 text-xs">$</span>
+                                    <input type="number" name="precio_boleto" id="rifa_precio" placeholder="0.00" step="0.01" required
+                                           class="w-full pl-6 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white transition-all font-mono text-slate-800">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Costo Unit.</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2 text-slate-400 text-xs">$</span>
+                                    <input type="number" name="costo_boleto" id="rifa_costo" placeholder="0.00" step="0.01" required
+                                           class="w-full pl-6 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white transition-all font-mono text-slate-800">
+                                </div>
+                            </div>
+                        </div>
 
-                        @if($rifa->estado === 'activa')
-                            <form method="POST" action="{{ route('admin.rifas.finalizar', $rifa) }}" class="inline">
-                                @csrf
-                                <button class="text-red-600 hover:underline text-sm">
-                                    Finalizar
+                        {{-- Sección Premios (Lista simple) --}}
+                        <div class="bg-slate-50 rounded-lg border border-slate-200 p-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide">Premios</h4>
+                                <button type="button" onclick="agregarFilaPremio()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 hover:underline">
+                                    <i class="ri-add-line"></i> Agregar
                                 </button>
-                            </form>
-                        @endif
+                            </div>
+                            
+                            {{-- Contenedor de premios --}}
+                            <div id="contenedor-premios" class="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
+                                <div id="empty-prizes-msg" class="text-center py-2 border border-dashed border-slate-200 rounded-md">
+                                    <p class="text-xs text-slate-400">Sin premios configurados</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                    </td>
-
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="5" class="px-6 py-10 text-center text-slate-400">
-                        No hay rifas creadas aún
-                    </td>
-                </tr>
-            @endforelse
-
-            </tbody>
-
-        </table>
+                    {{-- Footer --}}
+                    <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 rounded-b-xl">
+                        <button type="button" onclick="closeRifaModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 rounded-lg transition-all">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-all flex items-center gap-2">
+                            <span>Guardar Cambios</span>
+                            <i class="ri-arrow-right-line"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-
 </div>
 
 @endsection
@@ -254,137 +287,85 @@
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         // ==========================================
-        // 0. AUTO-RECUPERACIÓN DE ERRORES Y DATOS (MAGIA)
+        // 0. AUTO-RECUPERACIÓN DE ERRORES (Laravel)
         // ==========================================
-        // Capturamos los datos que Laravel manda tras un error
         const errores = @json($errors->all());
         const datosPrevios = @json(session()->getOldInput());
 
-        // Si hay datos previos (significa que hubo un error y recargó)
+        // Si hay datos previos (hubo error de validación)
         if (Object.keys(datosPrevios).length > 0) {
-            
-            // 1. Abrimos el modal automáticamente
-            const modal = document.getElementById('rifaModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            openRifaModal();
 
-            // 2. Rellenamos los campos con lo que el usuario había escrito
-            if(datosPrevios.nombre) document.getElementById('rifa_nombre').value = datosPrevios.nombre;
-            if(datosPrevios.sede) document.getElementById('rifa_sede').value = datosPrevios.sede;
-            if(datosPrevios.total_boletos) document.getElementById('rifa_total').value = datosPrevios.total_boletos;
-            if(datosPrevios.precio_boleto) document.getElementById('rifa_precio').value = datosPrevios.precio_boleto;
-            if(datosPrevios.costo_boleto) document.getElementById('rifa_costo').value = datosPrevios.costo_boleto;
-            
-            // 3. Inyectamos la alerta de error dinámicamente (ya que no está en el HTML)
+            // Restaurar valores básicos
+            const map = {
+                'nombre': 'rifa_nombre',
+                'sede': 'rifa_sede',
+                'total_boletos': 'rifa_total',
+                'precio_boleto': 'rifa_precio',
+                'costo_boleto': 'rifa_costo'
+            };
+
+            for (const [key, id] of Object.entries(map)) {
+                if (datosPrevios[key]) document.getElementById(id).value = datosPrevios[key];
+            }
+
+            // Mostrar Errores de forma elegante
             if (errores.length > 0) {
-                const formBody = document.querySelector('#rifaForm .p-6'); // Buscamos el cuerpo del form
-                if (formBody) {
+                const modalBody = document.querySelector('#rifaForm .space-y-5'); // Buscar el contenedor principal
+                if (modalBody) {
                     let htmlErrores = `
-                        <div id="error-alert" class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded shadow-sm animate-pulse">
-                            <div class="flex">
-                                <div class="ml-3">
-                                    <h3 class="text-sm font-bold text-red-800">No pudimos guardar la rifa</h3>
-                                    <ul class="mt-1 list-disc list-inside text-sm text-red-700">
+                        <div id="error-alert" class="bg-red-50 border border-red-100 rounded-lg p-3 mb-4 animate-fade-in-down">
+                            <div class="flex items-start gap-3">
+                                <i class="ri-error-warning-fill text-red-500 mt-0.5"></i>
+                                <div>
+                                    <h3 class="text-xs font-bold text-red-700 uppercase">Atención</h3>
+                                    <ul class="mt-1 text-xs text-red-600 list-disc list-inside">
                                         ${errores.map(e => `<li>${e}</li>`).join('')}
                                     </ul>
                                 </div>
                             </div>
                         </div>`;
-                    // Insertamos el error al principio del formulario
-                    formBody.insertAdjacentHTML('afterbegin', htmlErrores);
+                    modalBody.insertAdjacentHTML('afterbegin', htmlErrores);
+                    modalBody.scrollTop = 0;
                 }
             }
             
-            // Recalculamos los totales con los datos recuperados
-            calculateTotals();
+            // Nota: La recuperación de premios dinámicos requeriría lógica extra iterando
+            // sobre datosPrevios.premios, pero para este ejemplo básico lo omitiremos.
         }
-
-        // ==========================================
-        // INICIALIZACIÓN NORMAL
-        // ==========================================
-        calculateTotals();
-        showCurrentStep();
-
-        // Listeners para recálculo en tiempo real
-        const inputsCalculo = ['rifa_precio', 'rifa_costo', 'rifa_total'];
-        inputsCalculo.forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.addEventListener('input', calculateTotals);
-        });
     });
 
     // ==========================================
-    // 1. VARIABLES GLOBALES
-    // ==========================================
-    let premioIndex = 0;
-    let currentStep = 1;
-    const totalSteps = 4;
-
-    // ==========================================
-    // 2. GESTIÓN DE PREMIOS (CORREGIDO)
-    // ==========================================
-    function agregarFilaPremio() {
-        const contenedor = document.getElementById('contenedor-premios');
-        const rowId = `premio-row-${premioIndex}`;
-        
-        // CAMBIO IMPORTANTE: Quité el 'required' de los inputs generados.
-        // Esto permite enviar el formulario aunque la fila esté vacía (el controlador la ignorará).
-        const html = `
-            <div id="${rowId}" class="grid grid-cols-12 gap-2 items-center mb-2 prize-row transition-all duration-300">
-                <div class="col-span-3">
-                    <input type="number" name="premios[${premioIndex}][cantidad]" min="1" placeholder="1"
-                        oninput="calculateTotals()"
-                        class="prize-qty w-full text-sm border rounded px-2 py-1 focus:ring-1 focus:ring-blue-500">
-                </div>
-                <div class="col-span-4">
-                    <input type="number" name="premios[${premioIndex}][monto]" min="0" step="0.01" placeholder="$"
-                        oninput="calculateTotals()"
-                        class="prize-amount w-full text-sm border rounded px-2 py-1 focus:ring-1 focus:ring-blue-500">
-                </div>
-                <div class="col-span-4">
-                    <input type="text" name="premios[${premioIndex}][descripcion]" placeholder="Descripción"
-                        class="w-full text-sm border rounded px-2 py-1 focus:ring-1 focus:ring-blue-500">
-                </div>
-                <div class="col-span-1 text-center">
-                    <button type="button" onclick="eliminarFila('${rowId}')" class="text-red-400 hover:text-red-600 font-bold transition-colors">
-                        &times;
-                    </button>
-                </div>
-            </div>
-        `;        
-        
-        contenedor.insertAdjacentHTML('beforeend', html);
-        premioIndex++;
-        calculateTotals();
-    }
-
-    function eliminarFila(rowId) {
-        const fila = document.getElementById(rowId);
-        if(fila) {
-            fila.remove();
-            calculateTotals();
-        }
-    }
-
-    // ==========================================
-    // 3. LÓGICA DEL MODAL PRINCIPAL
+    // 1. GESTIÓN DEL MODAL (Animaciones Suaves)
     // ==========================================
     function openRifaModal() {
-        // Limpiamos alertas de error previas si existen
+        const modal = document.getElementById('rifaModal');
+        // Quitar alerta de errores previos si existe
         const errorAlert = document.getElementById('error-alert');
         if(errorAlert) errorAlert.remove();
 
-        resetForm(); 
-        const modal = document.getElementById('rifaModal');
         modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        calculateTotals();
+        
+        // Pequeño delay para permitir que el navegador renderice antes de animar
+        setTimeout(() => {
+            const content = document.getElementById('rifaModalContent');
+            content.style.transform = 'scale(1)';
+            content.style.opacity = '1';
+        }, 10);
     }
-    
+
     function closeRifaModal() {
         const modal = document.getElementById('rifaModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        const content = document.getElementById('rifaModalContent');
+        
+        // Animación de salida
+        content.style.transform = 'scale(0.95)';
+        content.style.opacity = '0';
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            resetForm(); // Limpiar formulario al cerrar completamente
+        }, 200); // 200ms coincide con el CSS transition
     }
 
     function resetForm() {
@@ -392,144 +373,126 @@
         if(!form) return;
         
         form.reset();
-        form.action = "{{ route('admin.rifas.store') }}";
+        form.action = "{{ route('admin.rifas.store') }}"; // Ruta por defecto (Crear)
         
-        const methodField = form.querySelector('[name=_method]');
+        // Limpiar método oculto (para que sea POST por defecto)
+        const methodField = form.querySelector('input[name="_method"]');
         if(methodField) methodField.value = '';
-        
+
+        // Título original
         document.getElementById('rifaModalTitle').innerText = 'Nueva Rifa';
         
-        currentStep = 1;
-        showCurrentStep();
-
-        // Reiniciar Premios: Agregamos una fila vacía PERO como ya no es 'required', no bloqueará nada
-        document.getElementById('contenedor-premios').innerHTML = '';
-        premioIndex = 0;
-        agregarFilaPremio(); 
+        // Reiniciar premios
+        document.getElementById('contenedor-premios').innerHTML = 
+            '<div id="empty-prizes-msg" class="text-center py-2 border border-dashed border-slate-200 rounded-md"><p class="text-xs text-slate-400">Sin premios configurados</p></div>';
     }
 
     // ==========================================
-    // 4. EDICIÓN (AJAX)
+    // 2. GESTIÓN DE PREMIOS (Diseño Enterprise)
     // ==========================================
-    function editarRifa(id) {
-        // Limpiamos errores previos
-        const errorAlert = document.getElementById('error-alert');
-        if(errorAlert) errorAlert.remove();
+    function agregarFilaPremio(data = null) {
+        const contenedor = document.getElementById('contenedor-premios');
+        const emptyMsg = document.getElementById('empty-prizes-msg');
+        if(emptyMsg) emptyMsg.style.display = 'none';
 
-        fetch(`/admin/rifas/${id}/editar`)
-            .then(res => res.json())
-            .then(rifa => {
-                const modal = document.getElementById('rifaModal');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                document.getElementById('rifaModalTitle').innerText = 'Editar Rifa';
+        // Valores por defecto
+        const cantidad = data ? data.cantidad : '';
+        const valor = data ? (data.valor || data.monto) : '';
+        const desc = data ? data.descripcion : '';
 
-                document.getElementById('rifa_id').value = rifa.id;
-                document.getElementById('rifa_nombre').value = rifa.nombre;
-                document.getElementById('rifa_sede').value = rifa.sede;
-                document.getElementById('rifa_total').value = rifa.total_boletos;
-                document.getElementById('rifa_precio').value = rifa.precio_boleto;
-                document.getElementById('rifa_costo').value = rifa.costo_boleto;
-
-                const form = document.getElementById('rifaForm');
-                form.action = `/admin/rifas/${rifa.id}`;
-                
-                let methodField = form.querySelector('[name=_method]');
-                if(!methodField) {
-                    methodField = document.createElement('input');
-                    methodField.type = 'hidden';
-                    methodField.name = '_method';
-                    form.appendChild(methodField);
-                }
-                methodField.value = 'PUT';
-
-                currentStep = 1;
-                showCurrentStep();
-
-                document.getElementById('contenedor-premios').innerHTML = '';
-                premioIndex = 0;
-                
-                // Si el backend devolviera premios, aquí los cargaríamos
-                // Por ahora ponemos una vacía
-                if (!rifa.premios || rifa.premios.length === 0) {
-                    agregarFilaPremio();
-                }
-
-                calculateTotals();
-            })
-            .catch(error => console.error('Error al cargar rifa:', error));
+        // Creamos el elemento DOM
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-12 gap-2 items-center animate-fade-in-up mb-2';
+        
+        // HTML con estilos Tailwind "Slate" ajustados
+        row.innerHTML = `
+            <div class="col-span-2">
+                <input type="number" name="premios_cantidad[]" value="${cantidad}" placeholder="1" 
+                    class="w-full bg-white border border-slate-200 rounded text-xs px-2 py-1.5 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none transition-all text-center">
+            </div>
+            <div class="col-span-3 relative">
+                <span class="absolute left-2 top-1.5 text-xs text-slate-400">$</span>
+                <input type="number" name="premios_valor[]" value="${valor}" placeholder="0.00" 
+                    class="w-full bg-white border border-slate-200 rounded text-xs pl-5 pr-2 py-1.5 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none transition-all">
+            </div>
+            <div class="col-span-6">
+                <input type="text" name="premios_descripcion[]" value="${desc}" placeholder="Descripción del premio..." 
+                    class="w-full bg-white border border-slate-200 rounded text-xs px-2 py-1.5 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none transition-all">
+            </div>
+            <div class="col-span-1 text-center">
+                <button type="button" onclick="eliminarFila(this)" 
+                    class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-colors">
+                    <i class="ri-delete-bin-line"></i>
+                </button>
+            </div>
+        `;
+        contenedor.appendChild(row);
     }
 
-    // ==========================================
-    // 5. WIZARD (PASOS)
-    // ==========================================
-    function showCurrentStep() {
-        for (let i = 1; i <= totalSteps; i++) {
-            const stepEl = document.getElementById(`step-${i}`);
-            // ... (resto de tu lógica de wizard original se mantiene igual si la tienes en HTML) ...
-            // Como tu HTML actual no parece tener divs con id="step-1", etc., 
-            // esta función es segura de dejar pero quizás no haga nada visual en tu modal actual
-            // ya que tu modal es de una sola página.
+    function eliminarFila(btn) {
+        btn.closest('.grid').remove();
+        const contenedor = document.getElementById('contenedor-premios');
+        // Si no quedan hijos (o solo quedan mensajes ocultos), mostrar mensaje vacío
+        if(contenedor.querySelectorAll('.grid').length === 0) {
+            const emptyMsg = document.getElementById('empty-prizes-msg');
+            if(emptyMsg) emptyMsg.style.display = 'block';
         }
     }
 
-    function changeStep(direction) {
-        // Lógica placeholder por si decides usar wizard en el futuro
-        currentStep += direction;
-    }
-
     // ==========================================
-    // 6. CÁLCULOS FINANCIEROS
+    // 3. EDICIÓN (AJAX)
     // ==========================================
-    function calculateTotals() {
-        const pv = parseFloat(document.getElementById("rifa_precio")?.value) || 0;
-        const cv = parseFloat(document.getElementById("rifa_costo")?.value) || 0;
-        const tb = parseInt(document.getElementById("rifa_total")?.value) || 0;
-
-        const precioReal = pv - cv;
-        const ingresosBrutos = tb * pv;
-        const ingresosReales = tb * precioReal;
-
-        let totalPremios = 0;
-        const filas = document.querySelectorAll('#contenedor-premios .prize-row');
-        
-        filas.forEach(row => {
-            const qtyInput = row.querySelector('.prize-qty');
-            const amtInput = row.querySelector('.prize-amount');
+    async function editarRifa(id) {
+        try {
+            // UI Feedback visual inmediato
+            document.body.style.cursor = 'wait';
             
-            const cantidad = parseFloat(qtyInput?.value) || 0;
-            const monto = parseFloat(amtInput?.value) || 0;
+            const response = await fetch(`/admin/rifas/${id}/editar`);
+            if (!response.ok) throw new Error('Error de red');
             
-            totalPremios += (cantidad * monto);
-        });
+            const rifa = await response.json();
 
-        // Solo actualizamos si existen los elementos en el DOM (para evitar errores)
-        updateMoney("precio-real", precioReal);
-        updateMoney("ingreso-ventas", ingresosBrutos);
-        updateMoney("ingresos-reales", ingresosReales);
-        updateMoney("fin-income", ingresosReales);
-        updateMoney("fin-expenses", totalPremios);
-        updateMoney("fin-profit", ingresosReales - totalPremios);
-    }
+            // 1. Abrir Modal
+            openRifaModal();
+            document.getElementById('rifaModalTitle').innerText = 'Editar Rifa #' + rifa.id;
 
-    function updateMoney(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.innerText = formatMoney(value);
-    }
+            // 2. Llenar Campos
+            document.getElementById('rifa_id').value = rifa.id;
+            document.getElementById('rifa_nombre').value = rifa.nombre;
+            document.getElementById('rifa_sede').value = rifa.sede;
+            document.getElementById('rifa_total').value = rifa.total_boletos;
+            document.getElementById('rifa_precio').value = rifa.precio_boleto;
+            document.getElementById('rifa_costo').value = rifa.costo_boleto;
 
-    function formatMoney(amount) {
-        return "$" + amount.toLocaleString("en-US", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
-    }
+            // 3. Configurar Formulario para PUT
+            const form = document.getElementById('rifaForm');
+            form.action = `/admin/rifas/${rifa.id}`;
+            let methodInput = form.querySelector('input[name="_method"]');
+            if (!methodInput) {
+                methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = '_method';
+                form.appendChild(methodInput);
+            }
+            methodInput.value = 'PUT';
 
-    // ==========================================
-    // 7. UTILIDADES
-    // ==========================================
-    function toggleDetails(rowId) {
-        const detailRow = document.getElementById(rowId + "-details");
-        if (detailRow) detailRow.classList.toggle("hidden");
+            // 4. Llenar Premios
+            const contenedor = document.getElementById('contenedor-premios');
+            // Limpiar filas existentes (excepto el mensaje de vacío)
+            contenedor.querySelectorAll('.grid').forEach(e => e.remove());
+            
+            if (rifa.premios && rifa.premios.length > 0) {
+                rifa.premios.forEach(premio => agregarFilaPremio(premio));
+            } else {
+                document.getElementById('empty-prizes-msg').style.display = 'block';
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert('No se pudo cargar la información de la rifa.');
+        } finally {
+            document.body.style.cursor = 'default';
+        }
     }
 </script>
 

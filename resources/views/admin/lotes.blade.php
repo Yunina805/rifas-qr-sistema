@@ -1,138 +1,223 @@
 @extends('layouts.admin')
 
-@section('title', 'Admin · Gestión de Lotes')
-
-@section('context_title')
-    Lote: {{ $rifa->nombre }}
-@endsection
-
-@section('context_subtitle', 'Administra los boletos generados para este sorteo')
+@section('title', 'Admin · Lotes: ' . $rifa->nombre)
 
 @section('content')
 
 <div class="space-y-6">
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-xs text-slate-500 uppercase font-bold">Total Boletos</p>
-            <p class="text-2xl font-bold text-slate-800">{{ $rifa->total_boletos }}</p>
+    {{-- HEADER & BREADCRUMBS --}}
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <nav class="flex text-xs font-medium text-slate-500 mb-1 space-x-2">
+                <a href="{{ route('admin.rifas') }}" class="hover:text-slate-800 transition-colors">Rifas</a>
+                <span class="text-slate-300">/</span>
+                <span class="text-slate-800">{{ $rifa->nombre }}</span>
+            </nav>
+            <h1 class="font-display font-bold text-xl text-slate-900 tracking-tight flex items-center gap-3">
+                Gestión de Boletos
+                <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wide border border-slate-200">
+                    ID: {{ $rifa->id }}
+                </span>
+            </h1>
         </div>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-xs text-slate-500 uppercase font-bold">Vendidos</p>
-            <p class="text-2xl font-bold text-blue-600">{{ $rifa->boletos()->where('estado', 'vendido')->count() }}</p>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-xs text-slate-500 uppercase font-bold">Premios en Juego</p>
-            <p class="text-2xl font-bold text-purple-600">
-                {{ $rifa->boletos()->where('es_ganador', true)->count() }}
-            </p>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-xs text-slate-500 uppercase font-bold">Recaudado (Estimado)</p>
-            <p class="text-2xl font-bold text-green-600">
-                ${{ number_format($rifa->boletos()->where('estado', 'vendido')->count() * $rifa->precio_boleto, 2) }}
-            </p>
-        </div>
-    </div>
-
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-        <form method="GET" class="flex gap-2 w-full md:max-w-xl">
-            <input type="text" name="search" value="{{ request('search') }}" 
-                placeholder="Buscar por folio (ej. 0001)..." 
-                class="w-full rounded-lg border-slate-200 text-sm focus:ring-blue-500">
-            
-            <select name="estado" class="rounded-lg border-slate-200 text-sm focus:ring-blue-500" onchange="this.form.submit()">
-                <option value="">Todos los estados</option>
-                <option value="ganadores" {{ request('estado') == 'ganadores' ? 'selected' : '' }}>🏆 Solo Ganadores</option>
-                <option value="disponible" {{ request('estado') == 'disponible' ? 'selected' : '' }}>Disponibles</option>
-                <option value="vendido" {{ request('estado') == 'vendido' ? 'selected' : '' }}>Vendidos</option>
-            </select>
-
-            <button type="submit" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-200 font-medium">
-                Filtrar
-            </button>
-            
-            @if(request()->has('search') || request()->has('estado'))
-                <a href="{{ route('admin.rifas.lotes', $rifa) }}" class="flex items-center justify-center bg-red-50 text-red-600 px-3 rounded-lg hover:bg-red-100" title="Limpiar Filtros">
-                    &times;
-                </a>
-            @endif
-        </form>
         
         <div class="flex gap-2">
-            <button class="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-900 text-sm font-medium">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Imprimir Todo
-            </button>
-            
-            <a href="{{ route('admin.rifas') }}" class="text-slate-500 hover:text-slate-800 px-4 py-2 text-sm font-medium">
-                &larr; Volver
+            <a href="{{ route('admin.rifas.imprimir', $rifa) }}" target="_blank" 
+               class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm">
+                <i class="ri-printer-line"></i>
+                <span class="hidden sm:inline">Imprimir Listado</span>
+            </a>
+            <a href="{{ route('admin.rifas') }}" 
+               class="inline-flex items-center gap-2 px-3 py-2 bg-slate-900 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-slate-800 transition-all shadow-sm">
+                <i class="ri-arrow-left-line"></i>
+                <span>Volver</span>
             </a>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    {{-- KPI CARDS (Minimalistas) --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {{-- Total --}}
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Emisión</p>
+                    <p class="text-2xl font-display font-bold text-slate-900 mt-1">{{ number_format($rifa->total_boletos) }}</p>
+                </div>
+                <div class="p-1.5 bg-slate-50 text-slate-500 rounded-md">
+                    <i class="ri-coupon-3-line text-lg"></i>
+                </div>
+            </div>
+            <div class="mt-2 text-xs text-slate-400">Boletos generados</div>
+        </div>
+
+        {{-- Vendidos --}}
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vendidos</p>
+                    <p class="text-2xl font-display font-bold text-slate-900 mt-1">{{ number_format($rifa->boletos()->where('estado', 'vendido')->count()) }}</p>
+                </div>
+                <div class="p-1.5 bg-indigo-50 text-indigo-600 rounded-md">
+                    <i class="ri-ticket-line text-lg"></i>
+                </div>
+            </div>
+            <div class="w-full bg-slate-100 h-1 mt-3 rounded-full overflow-hidden">
+                <div class="bg-indigo-600 h-full rounded-full" style="width: {{ ($rifa->boletos()->where('estado', 'vendido')->count() / $rifa->total_boletos) * 100 }}%"></div>
+            </div>
+        </div>
+
+        {{-- Premios --}}
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ganadores</p>
+                    <p class="text-2xl font-display font-bold text-slate-900 mt-1">{{ $rifa->boletos()->where('es_ganador', true)->count() }}</p>
+                </div>
+                <div class="p-1.5 bg-amber-50 text-amber-600 rounded-md">
+                    <i class="ri-trophy-line text-lg"></i>
+                </div>
+            </div>
+            <div class="mt-2 text-xs text-slate-400">Premios asignados</div>
+        </div>
+
+        {{-- Recaudado --}}
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recaudación</p>
+                    <p class="text-2xl font-display font-bold text-emerald-600 mt-1 tracking-tight">
+                        ${{ number_format($rifa->boletos()->where('estado', 'vendido')->count() * $rifa->precio_boleto, 2) }}
+                    </p>
+                </div>
+                <div class="p-1.5 bg-emerald-50 text-emerald-600 rounded-md">
+                    <i class="ri-money-dollar-circle-line text-lg"></i>
+                </div>
+            </div>
+            <div class="mt-2 text-xs text-slate-400">Estimado total</div>
+        </div>
+    </div>
+
+    {{-- TOOLBAR & FILTROS --}}
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-1.5 flex flex-col md:flex-row gap-2 items-center">
+        
+        <form method="GET" class="flex-1 w-full flex gap-2">
+            {{-- Buscador Integrado --}}
+            <div class="relative flex-1 group">
+                <i class="ri-search-2-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-600"></i>
+                <input type="text" name="search" value="{{ request('search') }}" 
+                    placeholder="Buscar folio (001)..." 
+                    class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-transparent hover:border-slate-200 focus:bg-white focus:border-slate-300 focus:ring-1 focus:ring-slate-300 rounded-lg text-sm transition-all outline-none font-medium">
+            </div>
+
+            {{-- Select Estado --}}
+            <div class="relative w-40">
+                <select name="estado" onchange="this.form.submit()" class="w-full pl-3 pr-8 py-2 bg-slate-50 border border-transparent hover:border-slate-200 focus:bg-white focus:border-slate-300 rounded-lg text-sm outline-none appearance-none font-medium text-slate-600 cursor-pointer">
+                    <option value="">Estado: Todos</option>
+                    <option value="ganadores" {{ request('estado') == 'ganadores' ? 'selected' : '' }}>Ganadores</option>
+                    <option value="disponible" {{ request('estado') == 'disponible' ? 'selected' : '' }}>Disponibles</option>
+                    <option value="vendido" {{ request('estado') == 'vendido' ? 'selected' : '' }}>Vendidos</option>
+                </select>
+                <i class="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+            </div>
+        </form>
+
+        {{-- Botones Acción --}}
+        @if(request()->has('search') || request()->has('estado'))
+            <a href="{{ route('admin.rifas.lotes', $rifa) }}" class="px-3 py-2 text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-100">
+                Limpiar
+            </a>
+        @endif
+        
+        <div class="h-6 w-px bg-slate-200 mx-1 hidden md:block"></div>
+        
+        <button class="px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors" title="Exportar CSV">
+            <i class="ri-download-line"></i>
+        </button>
+    </div>
+
+    {{-- TABLA --}}
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-slate-50/50 border-b border-slate-200">
                     <tr>
-                        <th class="px-6 py-4">Folio</th>
-                        <th class="px-6 py-4 text-center">QR Preview</th>
-                        <th class="px-6 py-4 text-center">Estado</th>
-                        <th class="px-6 py-4 text-center">Premio Asignado</th>
-                        <th class="px-6 py-4 text-right">Acciones</th>
+                        <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Folio</th>
+                        <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-center">Estado</th>
+                        <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Detalles Premio</th>
+                        <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-center">QR</th>
+                        <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-right"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($boletos as $boleto)
-                    <tr class="hover:bg-slate-50 transition {{ $boleto->es_ganador ? 'bg-amber-50/30' : '' }}">
+                    <tr class="group hover:bg-slate-50 transition-colors {{ $boleto->es_ganador ? 'bg-amber-50/30' : '' }}">
                         
+                        {{-- Folio --}}
                         <td class="px-6 py-3">
-                            <span class="font-mono font-bold text-lg text-slate-700">#{{ $boleto->folio }}</span>
-                            @if($boleto->es_ganador)
-                                <div class="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Premio oculto</div>
-                            @endif
-                        </td>
-
-                        <td class="px-6 py-3 text-center">
-                            <div class="inline-block p-1 bg-white border rounded cursor-pointer hover:scale-110 transition-transform"
-                                onclick="verQRGrande('{{ $boleto->folio }}', '{{ $boleto->codigo_qr }}', '{{ $boleto->es_ganador ? 'SI' : 'NO' }}')">
-                                {{ QrCode::size(40)->generate($boleto->codigo_qr) }}
+                            <div class="flex items-center gap-3">
+                                <span class="font-mono font-bold text-slate-700 text-sm">#{{ $boleto->folio }}</span>
+                                @if($boleto->es_ganador)
+                                    <span class="w-2 h-2 rounded-full bg-amber-500" title="Ganador"></span>
+                                @endif
                             </div>
                         </td>
 
+                        {{-- Estado (Estilo Dot) --}}
                         <td class="px-6 py-3 text-center">
-                            <span class="px-2 py-1 rounded-full text-xs font-bold
-                                @if($boleto->estado == 'disponible') bg-slate-100 text-slate-600
-                                @elseif($boleto->estado == 'vendido') bg-green-100 text-green-700
-                                @else bg-orange-100 text-orange-700 @endif">
+                            @php
+                                $config = match($boleto->estado) {
+                                    'vendido' => ['color' => 'bg-indigo-500', 'text' => 'text-indigo-700', 'bg_pill' => 'bg-indigo-50'],
+                                    'reservado' => ['color' => 'bg-orange-500', 'text' => 'text-orange-700', 'bg_pill' => 'bg-orange-50'],
+                                    default => ['color' => 'bg-slate-400', 'text' => 'text-slate-600', 'bg_pill' => 'bg-slate-100'],
+                                };
+                            @endphp
+                            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium {{ $config['bg_pill'] }} {{ $config['text'] }} border border-transparent">
+                                <span class="w-1.5 h-1.5 rounded-full {{ $config['color'] }}"></span>
                                 {{ ucfirst($boleto->estado) }}
-                            </span>
+                            </div>
                         </td>
 
-                        <td class="px-6 py-3 text-center">
+                        {{-- Premio --}}
+                        <td class="px-6 py-3">
                             @if($boleto->es_ganador)
-                                <span class="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-full border border-amber-200">
-                                    🏆 ${{ number_format($boleto->premio, 0) }}
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded bg-amber-100 flex items-center justify-center text-amber-600 text-xs">
+                                        <i class="ri-trophy-fill"></i>
+                                    </div>
+                                    <span class="font-mono font-medium text-slate-700">${{ number_format($boleto->premio, 0) }}</span>
+                                </div>
                             @else
-                                <span class="text-slate-300">-</span>
+                                <span class="text-slate-300 text-xs">—</span>
                             @endif
                         </td>
 
-                        <td class="px-6 py-3 text-right">
+                        {{-- QR Accion --}}
+                        <td class="px-6 py-3 text-center">
                             <button onclick="verQRGrande('{{ $boleto->folio }}', '{{ $boleto->codigo_qr }}', '{{ $boleto->es_ganador ? 'SI' : 'NO' }}')" 
-                                class="text-blue-600 hover:underline text-xs font-medium border border-blue-200 px-3 py-1 rounded hover:bg-blue-50">
-                                🔍 Ver / Escanear
+                                class="text-slate-400 hover:text-slate-700 transition-colors p-1" title="Ver QR">
+                                <i class="ri-qr-code-line text-lg"></i>
                             </button>
+                        </td>
+
+                        {{-- Acciones --}}
+                        <td class="px-6 py-3 text-right">
+                             <button class="text-slate-400 hover:text-indigo-600 transition-colors text-xs font-medium hover:underline">
+                                Editar
+                             </button>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-10 text-center text-slate-400">
-                            No se encontraron boletos con estos filtros.
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center">
+                                <div class="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                    <i class="ri-search-line text-slate-400"></i>
+                                </div>
+                                <p class="text-sm font-medium text-slate-900">No se encontraron boletos</p>
+                            </div>
                         </td>
                     </tr>
                     @endforelse
@@ -140,77 +225,121 @@
             </table>
         </div>
         
-        <div class="px-6 py-4 border-t border-slate-100">
+        @if($boletos->hasPages())
+        <div class="px-6 py-3 border-t border-slate-100 bg-slate-50/50">
             {{ $boletos->appends(request()->query())->links() }}
         </div>
+        @endif
     </div>
 </div>
 
-<div id="qrModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 backdrop-blur-sm transition-opacity" onclick="cerrarQrModal()">
-    <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl transform transition-all scale-100" onclick="event.stopPropagation()">
-        
-        <div class="mb-4">
-            <h3 class="text-2xl font-bold text-gray-800">Boleto #<span id="modalFolio"></span></h3>
-            <p class="text-sm text-gray-500">Escanea para validar</p>
-        </div>
+{{-- MODAL QR (Estilo Técnico) --}}
+<div id="qrModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity opacity-0" id="qrModalBackdrop" onclick="cerrarQrModal()"></div>
 
-        <div id="modalQrContent" class="flex justify-center mb-6 p-4 border-2 border-dashed border-gray-200 rounded-xl">
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            
+            <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all scale-95 opacity-0 sm:my-8 sm:w-full sm:max-w-sm border border-slate-200" id="qrModalContent">
+                
+                {{-- Header --}}
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Boleto Digital</p>
+                        <h3 class="text-lg font-mono font-bold text-slate-900 mt-0.5">#<span id="modalFolio">0000</span></h3>
+                    </div>
+                    <button onclick="cerrarQrModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-50 transition-colors">
+                        <i class="ri-close-line text-xl"></i>
+                    </button>
+                </div>
+
+                {{-- Body --}}
+                <div class="px-6 py-8 flex flex-col items-center">
+                    
+                    {{-- Badge Ganador --}}
+                    <div id="modalGanadorBadge" class="hidden mb-6 w-full bg-amber-50 border border-amber-100 rounded-lg p-3 flex items-start gap-3">
+                        <i class="ri-trophy-fill text-amber-500 mt-0.5"></i>
+                        <div>
+                            <p class="text-xs font-bold text-amber-700">Boleto Premiado</p>
+                            <p class="text-[11px] text-amber-600/80">Este folio ha sido marcado como ganador.</p>
+                        </div>
+                    </div>
+
+                    {{-- QR Container --}}
+                    <div class="p-3 bg-white border border-slate-200 rounded-xl shadow-sm relative">
+                         <div id="qrLoader" class="absolute inset-0 flex items-center justify-center bg-white z-10 rounded-xl">
+                            <div class="w-6 h-6 border-2 border-slate-800 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                        <div id="modalQrContent" class="opacity-0 transition-opacity duration-300"></div>
+                    </div>
+
+                    <p class="text-xs text-slate-400 mt-4 text-center max-w-[200px]">
+                        Escanea para validar autenticidad en el sistema.
+                    </p>
+                </div>
+
+                {{-- Footer --}}
+                <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex justify-center">
+                    <button onclick="cerrarQrModal()" class="text-xs font-medium text-slate-500 hover:text-slate-800">Cerrar ventana</button>
+                </div>
             </div>
-
-        <div id="modalGanadorBadge" class="hidden mb-4 bg-amber-100 text-amber-700 px-4 py-2 rounded-lg font-bold animate-pulse">
-            🏆 ¡Este boleto tiene premio!
         </div>
-
-        <button onclick="cerrarQrModal()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold hover:bg-slate-900 transition">
-            Cerrar
-        </button>
     </div>
 </div>
 
 <script>
     function verQRGrande(folio, codigoQr, esGanador) {
-        // 1. Llenar datos
-        document.getElementById('modalFolio').innerText = folio;
-        
-        // 2. Mostrar alerta visual si es ganador (Solo para admin)
-        const badge = document.getElementById('modalGanadorBadge');
-        if(esGanador === 'SI') badge.classList.remove('hidden');
-        else badge.classList.add('hidden');
-
-        // 3. Generar el QR grande en el modal usando una librería JS simple o HTML
-        // Como ya tenemos la librería de Laravel, lo más fácil es clonar el SVG pequeño y hacerlo grande,
-        // PERO para mejor calidad, usaremos una API de QR rápida o simplemente le pediremos al backend (si quisiéramos).
-        // TRUCO: Laravel ya generó el SVG en el listado, pero es pequeño. 
-        // Para no complicarnos con AJAX, usaremos una librería JS ligera o un servicio de imagen para el modal.
-        // O MEJOR AÚN: Inyectamos un contenedor vacío y usamos una librería JS pura para redibujarlo nítido.
-        
-        const container = document.getElementById('modalQrContent');
-        container.innerHTML = ''; // Limpiar
-        
-        // Generamos el QR usando una API pública rápida para el preview del modal (o qrcode.js si lo instalas)
-        // Para este ejemplo rápido usaremos la API de Google Charts o similar, OJO: En producción usa qrcode.js
-        // Pero para que funcione YA sin instalar JS extra:
-        
-        // Opción segura: Usar el SVG que ya tenemos en la fila.
-        // Vamos a buscar el SVG de la fila correspondiente. Pero eso es complejo.
-        
-        // Solución Robusta: Usar una librería JS CDN ligera para dibujar el QR al instante
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${codigoQr}`;
-        const img = document.createElement('img');
-        img.src = qrUrl;
-        img.className = "w-64 h-64 rounded-lg";
-        container.appendChild(img);
-
-        // 4. Abrir Modal
         const modal = document.getElementById('qrModal');
+        const backdrop = document.getElementById('qrModalBackdrop');
+        const content = document.getElementById('qrModalContent');
+        
         modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        
+        // Animación Entrada
+        requestAnimationFrame(() => {
+            backdrop.classList.remove('opacity-0');
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        });
+
+        // Set Data
+        document.getElementById('modalFolio').innerText = folio;
+
+        // Ganador Logic
+        const badge = document.getElementById('modalGanadorBadge');
+        esGanador === 'SI' ? badge.classList.remove('hidden') : badge.classList.add('hidden');
+
+        // Generar QR
+        const container = document.getElementById('modalQrContent');
+        const loader = document.getElementById('qrLoader');
+        
+        container.innerHTML = '';
+        container.classList.add('opacity-0');
+        loader.classList.remove('hidden');
+        
+        const img = new Image();
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${codigoQr}&margin=0`;
+        img.className = "w-48 h-48"; // Sin bordes redondeados en el QR mismo para mejor lectura
+        
+        img.onload = function() {
+            loader.classList.add('hidden');
+            container.appendChild(img);
+            requestAnimationFrame(() => container.classList.remove('opacity-0'));
+        };
     }
 
     function cerrarQrModal() {
         const modal = document.getElementById('qrModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        const backdrop = document.getElementById('qrModalBackdrop');
+        const content = document.getElementById('qrModalContent');
+
+        backdrop.classList.add('opacity-0');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
     }
 </script>
 
