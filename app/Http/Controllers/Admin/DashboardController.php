@@ -21,17 +21,25 @@ class DashboardController extends Controller
         // 2. CÁLCULOS FINANCIEROS (HISTÓRICO)
         // ==========================================
         
-        // CORRECCIÓN: Usamos whereIn para mayor seguridad y limpieza
         // Cuenta boletos 'vendido' Y 'entregado'
         $boletosVendidos = Boleto::whereIn('estado', ['vendido', 'entregado'])->count();
             
-        // Ingresos Totales: Sumamos el precio de la rifa asociado a cada boleto vendido
+        // Ingresos Totales
         $ingresosTotales = Boleto::whereIn('boletos.estado', ['vendido', 'entregado'])
             ->join('rifas', 'boletos.rifa_id', '=', 'rifas.id')
             ->sum('rifas.precio_boleto');
 
         // ==========================================
-        // 3. MOVIMIENTOS DE HOY (KPI DIARIO)
+        // 3. ACTIVIDAD RECIENTE (PARA EL WIDGET)
+        // ==========================================
+        $actividadReciente = Boleto::where('estado', '!=', 'disponible')
+            ->with(['rifa', 'vendedor']) 
+            ->latest('updated_at')
+            ->take(10) 
+            ->get();
+
+        // ==========================================
+        // 4. MOVIMIENTOS DE HOY (KPI DIARIO)
         // ==========================================
         
         $ventasHoy = Boleto::whereIn('estado', ['vendido', 'entregado'])
@@ -44,17 +52,18 @@ class DashboardController extends Controller
             ->sum('rifas.precio_boleto');
 
         // ==========================================
-        // 4. DATOS PARA LA TABLA DE PROGRESO
+        // 5. DATOS PARA LA TABLA DE PROGRESO
         // ==========================================
         
-        // Obtenemos solo las activas y contamos sus ventas dinámicamente
-        // Esto crea el atributo virtual 'vendidos' que usamos en la vista
         $rifas = Rifa::where('estado', 'activa')
             ->withCount(['boletos as vendidos' => function($query) {
                 $query->whereIn('estado', ['vendido', 'entregado']);
             }])
             ->get();
 
+        // ==========================================
+        // RETORNO DE LA VISTA (TODO JUNTO)
+        // ==========================================
         return view('admin.dashboard', compact(
             'totalRifas', 
             'rifasActivas', 
@@ -62,7 +71,8 @@ class DashboardController extends Controller
             'ingresosTotales', 
             'ventasHoy', 
             'ingresosHoy', 
-            'rifas'
+            'rifas',
+            'actividadReciente'
         ));
     }
 }

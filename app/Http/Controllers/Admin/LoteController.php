@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Rifa;
 use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\Facade\Pdf as PDFFacade;
 
 class LoteController extends Controller
 {
@@ -45,13 +45,9 @@ class LoteController extends Controller
 
         $boletos = $rifa->boletos()->get();
 
-        // Cargamos la vista del PDF (la crearemos en el siguiente paso)
-        $pdf = Pdf::loadView('admin.pdf.boletos', compact('rifa', 'boletos'));
-
-        // Configuración de papel (Carta) y orientación
-        $pdf->setPaper('letter', 'portrait');
-
-        // Descargamos el archivo
-        return $pdf->stream('Boletos_Rifa_' . $rifa->id . '.pdf');
+        // CAMBIA 'Pdf::loadView' POR 'PDFFacade::loadView'
+        $pdf = PDFFacade::loadView('admin.pdf.boletos', compact('rifa', 'boletos'));
+        
+        return $pdf->stream();
     }
 }

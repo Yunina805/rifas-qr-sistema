@@ -12,6 +12,7 @@ class Rifa extends Model
     protected $fillable = [
         'nombre',
         'sede',
+        'fecha_sorteo',
         'total_boletos',
         'precio_boleto',
         'costo_boleto',

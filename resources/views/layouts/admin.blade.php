@@ -68,7 +68,7 @@
                     <i class="ri-command-fill text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="font-display font-bold text-slate-900 text-base tracking-tight">Nexus<span class="text-slate-400 font-medium">Admin</span></h1>
+                    <h1 class="font-display font-bold text-slate-900 text-base tracking-tight">Rifas<span class="text-slate-400 font-medium">Admin</span></h1>
                 </div>
             </div>
         </div>

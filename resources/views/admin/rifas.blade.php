@@ -72,92 +72,122 @@
                         <th class="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
-                @forelse ($rifas as $rifa)
-                    <tr class="group hover:bg-slate-50/80 transition-colors">
-                        
-                        {{-- Evento --}}
-                        <td class="px-6 py-4">
-                            <div class="flex items-start gap-3">
-                                <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200 mt-0.5">
-                                    <span class="font-bold text-xs">#{{ $rifa->id }}</span>
+            <tbody class="divide-y divide-slate-100">
+            @forelse ($rifas as $rifa)
+                <tr class="group hover:bg-slate-50/80 transition-colors">
+                    
+                    {{-- 1. DETALLE DEL EVENTO (+ FECHA SORTEO) --}}
+                    <td class="px-6 py-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200 mt-0.5">
+                                <span class="font-bold text-xs">#{{ $rifa->id }}</span>
+                            </div>
+                            <div>
+                                <p class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{{ $rifa->nombre }}</p>
+                                
+                                {{-- Ubicación y Precio --}}
+                                <div class="flex items-center gap-2 mt-1">
+                                    <p class="text-xs text-slate-500 flex items-center gap-1">
+                                        <i class="ri-map-pin-line text-slate-400"></i> {{ $rifa->sede ?? 'Virtual' }}
+                                    </p>
+                                    <span class="text-slate-300">•</span>
+                                    <p class="text-xs text-slate-500 font-mono">${{ number_format($rifa->precio_boleto, 2) }}</p>
                                 </div>
-                                <div>
-                                    <p class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{{ $rifa->nombre }}</p>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <p class="text-xs text-slate-500 flex items-center gap-1">
-                                            <i class="ri-map-pin-line text-slate-400"></i> {{ $rifa->sede ?? 'Virtual' }}
-                                        </p>
-                                        <span class="text-slate-300">•</span>
-                                        <p class="text-xs text-slate-500 font-mono">${{ number_format($rifa->precio_boleto, 2) }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
 
-                        {{-- Estado (Estilo Pill con Dot) --}}
-                        <td class="px-6 py-4">
-                            @php
-                                $statusConfig = match($rifa->estado) {
-                                    'activa' => ['bg' => 'bg-emerald-500', 'text' => 'text-emerald-700', 'label' => 'Activa', 'border' => 'border-emerald-200', 'bg_pill' => 'bg-emerald-50'],
-                                    'finalizada' => ['bg' => 'bg-slate-500', 'text' => 'text-slate-600', 'label' => 'Finalizada', 'border' => 'border-slate-200', 'bg_pill' => 'bg-slate-50'],
-                                    default => ['bg' => 'bg-amber-500', 'text' => 'text-amber-700', 'label' => 'Borrador', 'border' => 'border-amber-200', 'bg_pill' => 'bg-amber-50'],
-                                };
-                            @endphp
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border {{ $statusConfig['border'] }} {{ $statusConfig['bg_pill'] }} {{ $statusConfig['text'] }}">
-                                <span class="w-1.5 h-1.5 rounded-full {{ $statusConfig['bg'] }}"></span>
-                                {{ $statusConfig['label'] }}
-                            </span>
-                        </td>
+                                {{-- CORREGIDO: Muestra la Fecha del Sorteo --}}
+                                <p class="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                                    <i class="ri-calendar-event-line"></i> 
+                                    @if($rifa->fecha_sorteo)
+                                        {{-- Usamos Carbon::parse por si el modelo no tiene el cast --}}
+                                        Sorteo: {{ \Carbon\Carbon::parse($rifa->fecha_sorteo)->format('d/m/Y h:i A') }}
+                                    @else
+                                        Sorteo: <span class="italic text-slate-300">Por definir</span>
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    </td>
 
-                        {{-- Progreso (Barra Fina) --}}
-                        <td class="px-6 py-4 w-48">
-                            <div class="flex justify-between text-xs mb-1.5">
-                                <span class="font-medium text-slate-700">{{ number_format($rifa->boletos_vendidos) }} <span class="text-slate-400 font-normal">/ {{ number_format($rifa->total_boletos) }}</span></span>
-                                @php
-                                    $percent = $rifa->total_boletos > 0 ? ($rifa->boletos_vendidos / $rifa->total_boletos) * 100 : 0;
-                                @endphp
-                                <span class="text-slate-500">{{ round($percent) }}%</span>
-                            </div>
-                            <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-slate-900 rounded-full" style="width: {{ $percent }}%"></div>
-                            </div>
-                        </td>
+                    {{-- 2. ESTADO --}}
+                    <td class="px-6 py-4">
+                        @php
+                            $statusConfig = match($rifa->estado) {
+                                'activa' => ['bg' => 'bg-emerald-500', 'text' => 'text-emerald-700', 'label' => 'Activa', 'border' => 'border-emerald-200', 'bg_pill' => 'bg-emerald-50'],
+                                'finalizada' => ['bg' => 'bg-slate-500', 'text' => 'text-slate-600', 'label' => 'Finalizada', 'border' => 'border-slate-200', 'bg_pill' => 'bg-slate-50'],
+                                default => ['bg' => 'bg-amber-500', 'text' => 'text-amber-700', 'label' => 'Borrador', 'border' => 'border-amber-200', 'bg_pill' => 'bg-amber-50'],
+                            };
+                        @endphp
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border {{ $statusConfig['border'] }} {{ $statusConfig['bg_pill'] }} {{ $statusConfig['text'] }}">
+                            <span class="w-1.5 h-1.5 rounded-full {{ $statusConfig['bg'] }}"></span>
+                            {{ $statusConfig['label'] }}
+                        </span>
+                    </td>
 
-                        {{-- Métricas Simples --}}
-                        <td class="px-6 py-4 text-right">
-                             <p class="text-xs font-bold text-slate-700">
-                                ${{ number_format($rifa->boletos_vendidos * $rifa->precio_boleto) }}
-                             </p>
-                             <p class="text-[10px] text-slate-400 uppercase tracking-wide">Recaudado</p>
-                        </td>
+                    {{-- 3. PROGRESO (CÁLCULO REAL) --}}
+                    <td class="px-6 py-4 w-48">
+                        @php
+                            $vendidosReales = $rifa->boletos()->where('estado', 'vendido')->count();
+                            $percent = $rifa->total_boletos > 0 ? ($vendidosReales / $rifa->total_boletos) * 100 : 0;
+                        @endphp
 
-                        {{-- Acciones --}}
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onclick="editarRifa({{ $rifa->id }})" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors" title="Editar">
-                                    <i class="ri-settings-3-line text-lg"></i>
-                                </button>
-                                <a href="{{ route('admin.rifas.lotes', $rifa) }}" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Ver Boletos">
-                                    <i class="ri-coupon-line text-lg"></i>
-                                </a>
+                        <div class="flex justify-between text-xs mb-1.5">
+                            <span class="font-medium text-slate-700">{{ number_format($vendidosReales) }} <span class="text-slate-400 font-normal">/ {{ number_format($rifa->total_boletos) }}</span></span>
+                            <span class="text-slate-500">{{ round($percent) }}%</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-slate-900 rounded-full transition-all duration-500" style="width: {{ $percent }}%"></div>
+                        </div>
+                    </td>
+
+                    {{-- 4. MÉTRICAS (DINERO REAL) --}}
+                    <td class="px-6 py-4 text-right">
+                        <p class="text-xs font-bold text-slate-700">
+                            ${{ number_format($vendidosReales * $rifa->precio_boleto) }}
+                        </p>
+                        <p class="text-[10px] text-slate-400 uppercase tracking-wide">Recaudado</p>
+                    </td>
+
+                    {{-- 5. ACCIONES (+ BOTÓN FINALIZAR) --}}
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            
+                            {{-- Editar --}}
+                            <button onclick="editarRifa({{ $rifa->id }})" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors" title="Editar">
+                                <i class="ri-settings-3-line text-lg"></i>
+                            </button>
+                            
+                            {{-- Ver Boletos --}}
+                            <a href="{{ route('admin.rifas.lotes', $rifa) }}" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Ver Boletos">
+                                <i class="ri-coupon-line text-lg"></i>
+                            </a>
+
+                            {{-- Botón Finalizar Rifa --}}
+                            @if($rifa->estado === 'activa')
+                                <form action="{{ route('admin.rifas.finalizar', $rifa) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas FINALIZAR esta rifa? Ya no se podrán vender más boletos.');" class="inline">
+                                    @csrf
+                                    <button type="submit" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Finalizar Rifa">
+                                        <i class="ri-stop-circle-line text-lg"></i>
+                                    </button>
+                                </form>
+                            @endif
+
+                        </div>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                <i class="ri-inbox-line text-xl text-slate-400"></i>
                             </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-12 text-center">
-                            <div class="flex flex-col items-center justify-center">
-                                <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                                    <i class="ri-inbox-line text-xl text-slate-400"></i>
-                                </div>
-                                <p class="text-sm font-medium text-slate-900">No hay rifas registradas</p>
-                                <p class="text-xs text-slate-500 mt-1">Crea una nueva rifa para comenzar a vender.</p>
-                            </div>
-                        </td>
-                    </tr>
-                @endforelse
-                </tbody>
+                            <p class="text-sm font-medium text-slate-900">No hay rifas registradas</p>
+                            <p class="text-xs text-slate-500 mt-1">Crea una nueva rifa para comenzar a vender.</p>
+                        </div>
+                    </td>
+                </tr>
+            @endforelse
+            </tbody>
             </table>
         </div>
         
@@ -205,19 +235,37 @@
                         
                         {{-- Grupo 1: Info General --}}
                         <div class="space-y-4">
+                            
+                            {{-- Nombre --}}
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nombre del Evento</label>
                                 <input type="text" name="nombre" id="rifa_nombre" placeholder="Ej. Gran Sorteo Anual" required
-                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400">
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400">
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Sede / Ubicación</label>
-                                <div class="relative">
-                                    <i class="ri-map-pin-line absolute left-3 top-2 text-slate-400"></i>
-                                    <input type="text" name="sede" id="rifa_sede" placeholder="Ej. Auditorio Principal"
-                                           class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400">
+                            {{-- Grid para Sede y Fecha --}}
+                            <div class="grid grid-cols-2 gap-4">
+                                
+                                {{-- Sede --}}
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Sede / Ubicación</label>
+                                    <div class="relative">
+                                        <i class="ri-map-pin-line absolute left-3 top-2 text-slate-400"></i>
+                                        <input type="text" name="sede" id="rifa_sede" placeholder="Ej. Auditorio"
+                                            class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400">
+                                    </div>
                                 </div>
+
+                                {{-- NUEVO: Fecha y Hora del Sorteo --}}
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Fecha del Sorteo</label>
+                                    <div class="relative">
+                                        <i class="ri-calendar-event-line absolute left-3 top-2 text-slate-400"></i>
+                                        <input type="datetime-local" name="fecha_sorteo" id="rifa_fecha" required
+                                            class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 font-medium">
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
 
@@ -300,13 +348,17 @@
             const map = {
                 'nombre': 'rifa_nombre',
                 'sede': 'rifa_sede',
+                'fecha_sorteo': 'rifa_fecha', // <--- AGREGADO: Para recuperar la fecha
                 'total_boletos': 'rifa_total',
                 'precio_boleto': 'rifa_precio',
                 'costo_boleto': 'rifa_costo'
             };
 
             for (const [key, id] of Object.entries(map)) {
-                if (datosPrevios[key]) document.getElementById(id).value = datosPrevios[key];
+                if (datosPrevios[key]) {
+                    const input = document.getElementById(id);
+                    if(input) input.value = datosPrevios[key];
+                }
             }
 
             // Mostrar Errores de forma elegante
@@ -329,9 +381,6 @@
                     modalBody.scrollTop = 0;
                 }
             }
-            
-            // Nota: La recuperación de premios dinámicos requeriría lógica extra iterando
-            // sobre datosPrevios.premios, pero para este ejemplo básico lo omitiremos.
         }
     });
 
@@ -388,35 +437,37 @@
     }
 
     // ==========================================
-    // 2. GESTIÓN DE PREMIOS (Diseño Enterprise)
+    // 2. GESTIÓN DE PREMIOS (CORREGIDO)
     // ==========================================
     function agregarFilaPremio(data = null) {
         const contenedor = document.getElementById('contenedor-premios');
         const emptyMsg = document.getElementById('empty-prizes-msg');
         if(emptyMsg) emptyMsg.style.display = 'none';
 
+        // Generamos un ID único para que Laravel agrupe los datos
+        const index = Date.now() + Math.floor(Math.random() * 1000);
+
         // Valores por defecto
         const cantidad = data ? data.cantidad : '';
-        const valor = data ? (data.valor || data.monto) : '';
+        const valor = data ? (data.valor || data.monto) : ''; 
         const desc = data ? data.descripcion : '';
 
-        // Creamos el elemento DOM
+        // Creamos la fila
         const row = document.createElement('div');
         row.className = 'grid grid-cols-12 gap-2 items-center animate-fade-in-up mb-2';
         
-        // HTML con estilos Tailwind "Slate" ajustados
         row.innerHTML = `
             <div class="col-span-2">
-                <input type="number" name="premios_cantidad[]" value="${cantidad}" placeholder="1" 
+                <input type="number" name="premios[${index}][cantidad]" value="${cantidad}" placeholder="1" 
                     class="w-full bg-white border border-slate-200 rounded text-xs px-2 py-1.5 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none transition-all text-center">
             </div>
             <div class="col-span-3 relative">
                 <span class="absolute left-2 top-1.5 text-xs text-slate-400">$</span>
-                <input type="number" name="premios_valor[]" value="${valor}" placeholder="0.00" 
+                <input type="number" name="premios[${index}][monto]" value="${valor}" placeholder="0.00" 
                     class="w-full bg-white border border-slate-200 rounded text-xs pl-5 pr-2 py-1.5 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none transition-all">
             </div>
             <div class="col-span-6">
-                <input type="text" name="premios_descripcion[]" value="${desc}" placeholder="Descripción del premio..." 
+                <input type="text" name="premios[${index}][descripcion]" value="${desc}" placeholder="Descripción (Opcional)" 
                     class="w-full bg-white border border-slate-200 rounded text-xs px-2 py-1.5 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none transition-all">
             </div>
             <div class="col-span-1 text-center">
@@ -460,6 +511,15 @@
             document.getElementById('rifa_id').value = rifa.id;
             document.getElementById('rifa_nombre').value = rifa.nombre;
             document.getElementById('rifa_sede').value = rifa.sede;
+
+            // --- LÓGICA DE FECHA AGREGADA ---
+            // Convertimos "2026-02-10 12:00:00" a "2026-02-10T12:00" para el input datetime-local
+            if(rifa.fecha_sorteo) {
+                document.getElementById('rifa_fecha').value = rifa.fecha_sorteo.replace(' ', 'T').substring(0, 16);
+            } else {
+                document.getElementById('rifa_fecha').value = '';
+            }
+
             document.getElementById('rifa_total').value = rifa.total_boletos;
             document.getElementById('rifa_precio').value = rifa.precio_boleto;
             document.getElementById('rifa_costo').value = rifa.costo_boleto;

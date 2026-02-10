@@ -174,54 +174,91 @@
         {{-- SECCIÓN 3: SIDEBAR WIDGETS (Actividad) --}}
         <div class="space-y-6">
 
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full max-h-[500px]">
-                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
-                    <h3 class="font-bold text-slate-700 text-xs uppercase tracking-wide">Actividad Reciente</h3>
-                    <div class="flex items-center gap-1.5">
-                        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                        <span class="text-[10px] text-slate-400 font-medium">En vivo</span>
-                    </div>
-                </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full max-h-[500px]">
+        
+        {{-- HEADER --}}
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
+            <h3 class="font-bold text-slate-700 text-xs uppercase tracking-wide">Actividad Reciente</h3>
+            <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span class="text-[10px] text-slate-400 font-medium">En vivo</span>
+            </div>
+        </div>
 
-                <div class="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+        {{-- LISTA DINÁMICA --}}
+        <div class="flex-1 overflow-y-auto p-5 space-y-0 custom-scrollbar">
+            
+            @forelse($actividadReciente as $actividad)
+                
+                {{-- Logica de Colores e Iconos según el tipo de actividad --}}
+                @php
+                    $esVenta = $actividad->estado === 'vendido';
+                    $esEntrega = $actividad->estado === 'entregado';
                     
-                    {{-- Item de actividad (Ejemplo estático) --}}
-                    <div class="relative pl-6 border-l border-slate-200">
-                        <div class="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-900 ring-4 ring-white"></div>
-                        <div>
-                            <p class="text-xs text-slate-500 mb-0.5">Hace un momento</p>
-                            <p class="text-sm font-medium text-slate-800">Dashboard iniciado</p>
-                            <p class="text-xs text-slate-500 mt-1">El sistema está listo para registrar ventas.</p>
-                        </div>
-                    </div>
+                    $colorDot = $esEntrega ? 'bg-amber-500' : 'bg-indigo-500';
+                    $icono = $esEntrega ? 'ri-trophy-fill' : 'ri-ticket-fill';
+                    $textoColor = $esEntrega ? 'text-amber-700' : 'text-slate-800';
+                    $titulo = $esEntrega ? '¡Premio Entregado!' : 'Nueva Venta';
+                @endphp
 
-                    {{-- Placeholder --}}
-                     <div class="relative pl-6 border-l border-slate-100 opacity-60">
-                         <div class="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-300 ring-4 ring-white"></div>
-                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <p class="text-xs text-slate-400 italic text-center">
-                                Las nuevas transacciones aparecerán aquí automáticamente.
+                <div class="relative pl-6 border-l border-slate-200 pb-6 last:pb-0 last:border-transparent group">
+                    
+                    {{-- Punto de la línea de tiempo --}}
+                    <div class="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full {{ $colorDot }} ring-4 ring-white group-hover:scale-125 transition-transform"></div>
+                    
+                    <div>
+                        {{-- Tiempo relativo (Ej: Hace 5 min) --}}
+                        <p class="text-[10px] text-slate-400 mb-0.5 uppercase font-bold tracking-wider">
+                            {{ $actividad->updated_at->diffForHumans() }}
+                        </p>
+                        
+                        {{-- Título de la acción --}}
+                        <p class="text-sm font-bold {{ $textoColor }} flex items-center gap-1.5">
+                            <i class="{{ $icono }}"></i> {{ $titulo }}
+                        </p>
+                        
+                        {{-- Detalles --}}
+                        <div class="text-xs text-slate-500 mt-1 bg-slate-50 p-2 rounded border border-slate-100">
+                            <p>
+                                <span class="font-semibold text-slate-700">Folio #{{ $actividad->folio }}</span> 
+                                en <span class="italic">{{ $actividad->rifa->nombre }}</span>
                             </p>
+                            
+                            @if($actividad->vendedor)
+                                <p class="mt-1 flex items-center gap-1 text-slate-400">
+                                    <i class="ri-user-star-line"></i> Vendedor: {{ $actividad->vendedor->nombre }}
+                                </p>
+                            @else
+                                <p class="mt-1 flex items-center gap-1 text-slate-400">
+                                    <i class="ri-store-line"></i> Venta Directa / Oficina
+                                </p>
+                            @endif
+
+                            @if($esVenta)
+                                <p class="mt-1 font-mono text-emerald-600 font-bold">+ ${{ number_format($actividad->rifa->precio_boleto, 2) }}</p>
+                            @endif
                         </div>
                     </div>
-
                 </div>
-            </div>
 
-            <div class="bg-slate-900 rounded-xl p-5 text-white relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-500 rounded-full blur-2xl opacity-20 -mr-6 -mt-6"></div>
-                <h4 class="font-bold text-sm mb-4 relative z-10">Acciones Rápidas</h4>
-                <div class="space-y-2 relative z-10">
-                    <button onclick="window.print()" class="w-full bg-white/10 hover:bg-white/20 border border-white/10 text-white py-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-2 backdrop-blur-sm">
-                        <i class="ri-printer-line"></i> Imprimir Reporte
-                    </button>
-                    <button class="w-full bg-white/10 hover:bg-white/20 border border-white/10 text-white py-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-2 backdrop-blur-sm">
-                        <i class="ri-share-forward-line"></i> Exportar CSV
-                    </button>
+            @empty
+                
+                {{-- ESTADO VACÍO (Si no hay nada aún) --}}
+                <div class="relative pl-6 border-l border-slate-100 opacity-60">
+                    <div class="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-300 ring-4 ring-white"></div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 text-center">
+                        <i class="ri-time-line text-2xl text-slate-300 mb-2 block"></i>
+                        <p class="text-xs text-slate-400 italic">
+                            El sistema está esperando las primeras transacciones.
+                        </p>
+                    </div>
                 </div>
-            </div>
+
+            @endforelse
 
         </div>
+    </div>
+</div>
 
     </div>
 </div>

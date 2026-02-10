@@ -1,183 +1,233 @@
 @extends('layouts.admin')
 
-@section('title', 'Terminal de Escaneo')
+@section('title', 'Escáner QR')
 
 @section('content')
-
-<div class="max-w-md mx-auto space-y-6">
-
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-        <div class="flex justify-between items-center mb-2">
-            <h2 class="font-bold text-slate-800">Escáner QR</h2>
-            <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-slate-500 uppercase">Modo Venta</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="mode-switch" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                </label>
-            </div>
-        </div>
-        <p id="mode-text" class="text-xs text-slate-500">
-            Modo Consulta: Solo verifica el estado del boleto.
-        </p>
+<div class="p-6 max-w-lg mx-auto">
+    
+    <div class="mb-6 text-center">
+        <h1 class="text-2xl font-bold text-slate-800">Escáner de Boletos</h1>
+        <p class="text-sm text-slate-500">Apunta la cámara al código QR del boleto.</p>
     </div>
 
-    <div class="bg-black rounded-3xl overflow-hidden shadow-2xl relative aspect-square group">
-        <div id="reader" class="w-full h-full object-cover"></div>
+    <div class="bg-black rounded-2xl overflow-hidden shadow-2xl relative">
+        <div id="reader" class="w-full h-[400px] bg-black"></div>
         
-        <div id="scan-frame" class="absolute inset-0 border-4 border-blue-500/50 m-8 rounded-xl pointer-events-none transition-colors duration-300"></div>
-
-        <div id="sale-indicator" class="hidden absolute top-4 left-0 right-0 text-center">
-            <span class="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-pulse">
-                💲 MODO VENTA ACTIVO
-            </span>
-        </div>
-
-        <div id="loading-msg" class="absolute inset-0 flex items-center justify-center text-white bg-black/80 z-10 hidden">
-            <p class="font-bold text-lg animate-bounce">Procesando...</p>
-        </div>
+        <div class="absolute inset-0 border-2 border-red-500/50 pointer-events-none"></div>
+        <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-red-600 shadow-[0_0_10px_rgba(255,0,0,0.8)] animate-pulse"></div>
     </div>
 
-    <div id="result-card" class="hidden bg-white rounded-2xl p-6 shadow-lg border-2 border-slate-100 text-center transition-all transform duration-300">
+    <div id="resultado" class="hidden mt-6 p-4 rounded-xl border-l-4 shadow-sm transition-all">
+        <h3 id="resTitulo" class="font-bold text-lg"></h3>
+        <p id="resMensaje" class="text-sm"></p>
+        <div id="resDetalle" class="mt-2 text-xs bg-white/50 p-2 rounded"></div>
         
-        <div id="status-icon" class="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl mb-4 shadow-sm"></div>
-
-        <h3 id="status-title" class="text-2xl font-black text-slate-800 mb-1"></h3>
-        <p id="status-desc" class="text-slate-500 text-sm mb-6"></p>
-
-        <button onclick="reiniciarEscaner()" id="btn-continue" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition shadow-lg text-lg">
-            Siguiente Boleto &rarr;
-        </button>
+        <div id="acciones" class="mt-4 flex gap-2 hidden">
+            <button id="btnVender" class="flex-1 bg-green-600 text-white py-2 rounded font-bold shadow hover:bg-green-700">
+                ✅ Confirmar Venta
+            </button>
+            <button id="btnEntregar" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold shadow hover:bg-blue-700">
+                🏆 Entregar Premio
+            </button>
+        </div>
     </div>
 
 </div>
 
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-<audio id="beep-ok" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
-<audio id="beep-sale" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio> <audio id="beep-error" src="https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3"></audio>
+
+<audio id="beep-ok" src="https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3"></audio>
+<audio id="beep-error" src="https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3"></audio>
 
 <script>
+    // Configuración del Escáner
     const html5QrCode = new Html5Qrcode("reader");
-    let isScanning = true;
-    const modeSwitch = document.getElementById('mode-switch');
-    const modeText = document.getElementById('mode-text');
-    const scanFrame = document.getElementById('scan-frame');
-    const saleIndicator = document.getElementById('sale-indicator');
-
-    // 1. Control del Modo (Visual)
-    modeSwitch.addEventListener('change', (e) => {
-        if(e.target.checked) {
-            modeText.innerText = "Modo Venta: Al escanear, el boleto se marcará como VENDIDO.";
-            modeText.classList.add('text-green-600', 'font-bold');
-            scanFrame.classList.replace('border-blue-500/50', 'border-green-500/80');
-            saleIndicator.classList.remove('hidden');
-        } else {
-            modeText.innerText = "Modo Consulta: Solo verifica el estado del boleto.";
-            modeText.classList.remove('text-green-600', 'font-bold');
-            scanFrame.classList.replace('border-green-500/80', 'border-blue-500/50');
-            saleIndicator.classList.add('hidden');
-        }
-    });
-
-    // 2. Iniciar Cámara
-    document.addEventListener('DOMContentLoaded', () => {
-        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess)
-        .catch(err => alert("Error de cámara: " + err));
-    });
+    let isScanning = true; // Para evitar lecturas dobles muy rápidas
+    let lastCode = ""; 
 
     function onScanSuccess(decodedText, decodedResult) {
-        if (!isScanning) return;
-        isScanning = false;
+        // --- ZONA DE PRUEBAS (Debug) ---
+        console.log("👁️ ¡OJO! La cámara detectó este texto:", decodedText);
+        // -------------------------------
+
+        if (!isScanning || decodedText === lastCode) {
+            console.log("...Lectura repetida ignorada...");
+            return;
+        }
         
-        document.getElementById('loading-msg').classList.remove('hidden');
-
-        // Determinar acción según el switch
-        const accion = modeSwitch.checked ? 'vender' : 'consultar';
-
+        // Pausamos brevemente para no saturar
+        lastCode = decodedText;
+        console.log("🚀 Enviando al backend..."); // Aviso de envío
+        
+        // Enviamos al Backend
         fetch("{{ route('admin.escaner.validar') }}", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
-            body: JSON.stringify({ codigo_qr: decodedText, accion: accion })
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify({ codigo_qr: decodedText })
         })
-        .then(res => res.json())
-        .then(data => mostrarResultado(data))
-        .catch(err => {
-            console.error(err);
-            mostrarError("Error de conexión");
+        .then(response => {
+            // Si el servidor falla, queremos saber por qué
+            if (!response.ok) {
+                throw new Error("Error del Servidor: " + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("✅ Respuesta recibida:", data); // Ver qué respondió Laravel
+            mostrarResultado(data, decodedText);
+        })
+        .catch(error => {
+            console.error('❌ Error grave:', error);
+            alert("Error de conexión: " + error.message);
         });
     }
 
-    function mostrarResultado(data) {
-        document.getElementById('loading-msg').classList.add('hidden');
-        document.getElementById('result-card').classList.remove('hidden');
+    function mostrarResultado(data, codigoQr) {
+        const div = document.getElementById('resultado');
+        const titulo = document.getElementById('resTitulo');
+        const mensaje = document.getElementById('resMensaje');
+        const detalle = document.getElementById('resDetalle');
+        const acciones = document.getElementById('acciones');
+        const btnVender = document.getElementById('btnVender');
+        const btnEntregar = document.getElementById('btnEntregar');
+
+        // Limpieza de clases previas
+        div.classList.remove('hidden', 'bg-green-50', 'border-green-500', 'bg-yellow-50', 'border-yellow-500', 'bg-red-50', 'border-red-500', 'bg-blue-50', 'border-blue-500', 'bg-slate-50', 'border-slate-400', 'bg-amber-50', 'border-amber-500', 'text-green-800', 'text-yellow-800', 'text-red-800', 'text-blue-900', 'text-slate-700', 'text-amber-900');
+        acciones.classList.add('hidden');
         
-        const icon = document.getElementById('status-icon');
-        const title = document.getElementById('status-title');
-        const desc = document.getElementById('status-desc');
-        const btn = document.getElementById('btn-continue');
-
-        // RESETEAR CLASES
-        icon.className = "w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl mb-4 shadow-sm";
-        document.getElementById('result-card').className = "bg-white rounded-2xl p-6 shadow-lg border-2 text-center transition-all transform duration-300";
-
-        if (!data.success) {
-            // ERROR (Ya vendido o no existe)
-            document.getElementById('beep-error').play();
-            icon.classList.add('bg-red-100', 'text-red-600');
-            icon.innerHTML = "❌";
-            document.getElementById('result-card').classList.add('border-red-500');
-            title.innerText = "Error";
-            desc.innerText = data.message || "Código inválido";
-            btn.className = "w-full py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition";
-            return;
-        }
-
-        // ÉXITO - VENTA
-        if (data.tipo === 'venta_exitosa') {
-            document.getElementById('beep-sale').play();
-            icon.classList.add('bg-green-100', 'text-green-600');
-            icon.innerHTML = "💰";
-            document.getElementById('result-card').classList.add('border-green-500');
-            
-            title.innerText = "¡Venta Registrada!";
-            title.className = "text-2xl font-black text-green-600 mb-1";
-            desc.innerText = `Folio #${data.boleto.folio} marcado como vendido.`;
-            
-            btn.className = "w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition";
-            btn.innerText = "Siguiente Venta &rarr;";
-            
-            // Auto-cerrar en 2 segundos para agilizar ventas masivas (opcional)
-            // setTimeout(reiniciarEscaner, 2000); 
-        } 
-        // ÉXITO - CONSULTA
-        else {
+        // Reproducir sonido
+        if(data.success) {
             document.getElementById('beep-ok').play();
-            if(data.boleto.es_ganador) {
-                icon.classList.add('bg-yellow-100', 'text-yellow-600', 'animate-bounce');
-                icon.innerHTML = "🏆";
-                title.innerText = "¡TIENE PREMIO!";
-                desc.innerText = "Premio: $" + data.boleto.premio;
-            } else {
-                icon.classList.add('bg-blue-50', 'text-blue-600');
-                icon.innerHTML = "ℹ️";
-                title.innerText = "Boleto #" + data.boleto.folio;
-                desc.innerText = "Estado: " + data.boleto.estado;
+        } else {
+            document.getElementById('beep-error').play();
+        }
+
+        // --- CASO 1: CONSULTA (Cuando escaneas por primera vez) ---
+        if (data.tipo === 'consulta') {
+            
+            titulo.innerText = "Boleto Detectado";
+            mensaje.innerText = "Folio: " + data.boleto.folio;
+            
+            let htmlEstadoBoleto = '';
+
+            // ---------------------------------------------------------
+            // OPCIÓN A: ES GANADOR (Dorado 🏆)
+            // ---------------------------------------------------------
+            if (data.boleto.es_ganador == 1 || data.boleto.es_ganador === true) {
+                div.classList.add('bg-amber-50', 'border-amber-500', 'text-amber-900');
+                
+                htmlEstadoBoleto = `
+                    <div class="mt-3 mb-2 p-3 bg-white/80 rounded-lg border border-amber-200 flex items-center gap-3 shadow-sm animate-pulse">
+                        <div class="bg-amber-100 p-2 rounded-full text-amber-600">
+                            <i class="ri-trophy-fill text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm text-amber-700">¡ES UN BOLETO GANADOR!</p>
+                            <p class="text-xs font-mono text-amber-600 font-bold">Premio: $${data.boleto.premio}</p>
+                        </div>
+                    </div>
+                `;
+            } 
+            // ---------------------------------------------------------
+            // OPCIÓN B: NO ES GANADOR (Gris 🎫)
+            // ---------------------------------------------------------
+            else {
+                div.classList.add('bg-slate-50', 'border-slate-400', 'text-slate-700');
+                
+                htmlEstadoBoleto = `
+                    <div class="mt-3 mb-2 p-3 bg-white/60 rounded-lg border border-slate-200 flex items-center gap-3 shadow-sm">
+                        <div class="bg-slate-200 p-2 rounded-full text-slate-500">
+                            <i class="ri-emotion-normal-line text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm text-slate-600">Boleto No Premiado</p>
+                            <p class="text-xs text-slate-400">Suerte para la próxima.</p>
+                        </div>
+                    </div>
+                `;
             }
-            btn.className = "w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition";
-            btn.innerText = "Escanear Otro";
+
+            // Construimos el detalle completo
+            let htmlDetalle = `
+                ${htmlEstadoBoleto}
+                <div class="grid grid-cols-2 gap-y-1 gap-x-4 text-xs mt-2 border-t border-black/5 pt-2">
+                    <div><strong>Estado:</strong> <span class="uppercase font-bold">${data.boleto.estado}</span></div>
+                    <div><strong>Costo:</strong> $${data.boleto.precio}</div>
+                    <div class="col-span-2 mt-1">
+                        <strong>Vendedor Asignado:</strong><br>
+                        ${data.boleto.vendedor}
+                    </div>
+                </div>
+            `;
+            detalle.innerHTML = htmlDetalle;
+
+            // Botones de Acción
+            acciones.classList.remove('hidden');
+            
+            // Lógica de Botones (Vender o Entregar)
+            if(data.boleto.estado === 'Disponible') {
+                btnVender.style.display = 'block';
+                // Al hacer clic, enviamos la acción 'vender'
+                btnVender.onclick = () => procesarAccion(codigoQr, 'vender');
+                btnEntregar.style.display = 'none';
+
+            } else if (data.boleto.estado === 'Vendido' && (data.boleto.es_ganador == 1 || data.boleto.es_ganador === true)) {
+                // Solo si es GANADOR y VENDIDO se puede entregar premio
+                btnVender.style.display = 'none';
+                btnEntregar.style.display = 'block';
+                btnEntregar.onclick = () => procesarAccion(codigoQr, 'entregar');
+
+            } else {
+                // Si ya está vendido y no gana nada, no hay botones
+                acciones.classList.add('hidden'); 
+            }
+
+        // --- CASO 2: ÉXITO EN ACCIÓN (Ya se vendió o entregó) ---
+        } else if (data.success) {
+            div.classList.add('bg-green-50', 'border-green-500', 'text-green-800');
+            titulo.innerText = "¡Operación Exitosa!";
+            mensaje.innerText = data.mensaje;
+            detalle.innerHTML = data.datos_extra || ''; 
+            setTimeout(() => { lastCode = ""; }, 2500); 
+
+        // --- CASO 3: ERROR (Boleto no existe o error del sistema) ---
+        } else {
+            div.classList.add('bg-red-50', 'border-red-500', 'text-red-800');
+            titulo.innerText = "Error";
+            mensaje.innerText = data.message;
+            detalle.innerHTML = "";
+            setTimeout(() => { lastCode = ""; }, 2500);
         }
     }
 
-    function mostrarError(msg) {
-        document.getElementById('loading-msg').classList.add('hidden');
-        alert(msg);
-        reiniciarEscaner();
+    // Función para confirmar Venta o Entrega
+    function procesarAccion(codigo, accion) {
+        fetch("{{ route('admin.escaner.validar') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify({ codigo_qr: codigo, accion: accion })
+        })
+        .then(response => response.json())
+        .then(data => {
+            mostrarResultado(data, codigo);
+        });
     }
 
-    function reiniciarEscaner() {
-        document.getElementById('result-card').classList.add('hidden');
-        isScanning = true;
-    }
+    // Iniciar cámara
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess
+    ).catch(err => {
+        console.log("Error iniciando cámara", err);
+        alert("No se pudo iniciar la cámara. Asegúrate de dar permisos.");
+    });
+
 </script>
-
 @endsection
