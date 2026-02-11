@@ -1,87 +1,89 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\RifaController;
 use App\Http\Controllers\Admin\LoteController;
 use App\Http\Controllers\PublicRifaController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\VendedorController; // <--- AGREGADO
+use App\Http\Controllers\Admin\VendedorController;
 
 /*
 |--------------------------------------------------------------------------
-| RUTAS PÚBLICAS
+| RUTAS PÚBLICAS (Sin Login)
 |--------------------------------------------------------------------------
 */
 
-// Redirección de la raíz al admin
 Route::get('/', function () {
-    return redirect()->route('admin.dashboard');
+    return redirect()->route('login');
 });
 
-// Verificación de Boletos (QR)
+// Verificación de Boletos (QR Público)
 Route::get('/verificar/{codigo}', [PublicRifaController::class, 'verificar'])
     ->name('boleto.verificar');
 
-
 /*
 |--------------------------------------------------------------------------
-| RUTAS ADMINISTRATIVAS
+| RUTAS PROTEGIDAS (Requieren Login)
 |--------------------------------------------------------------------------
 */
-Route::prefix('admin')->name('admin.')->group(function () {
+Route::middleware('auth')->group(function () {
 
     // ==========================================
-    // DASHBOARD
+    // ZONA ADMINISTRADOR (Role: Admin)
     // ==========================================
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        
+        // Dashboard
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        // Gestión de Rifas
+        Route::get('/rifas', [RifaController::class, 'index'])->name('rifas');
+        Route::post('/rifas', [RifaController::class, 'store'])->name('rifas.store');
+        Route::get('/rifas/{rifa}/editar', [RifaController::class, 'edit'])->name('rifas.edit');
+        Route::put('/rifas/{rifa}', [RifaController::class, 'update'])->name('rifas.update');
+        Route::post('/rifas/{rifa}/activar', [RifaController::class, 'activar'])->name('rifas.activar');
+        Route::post('/rifas/{rifa}/finalizar', [RifaController::class, 'finalizar'])->name('rifas.finalizar');
+
+        // Gestión de Lotes (Boletos)
+        Route::get('/rifas/{rifa}/lotes', [LoteController::class, 'index'])->name('rifas.lotes');
+        Route::post('/rifas/{rifa}/lotes', [LoteController::class, 'store'])->name('rifas.lotes.store');
+        Route::get('/rifas/{rifa}/imprimir', [LoteController::class, 'imprimir'])->name('rifas.imprimir');
+        Route::post('/boletos/{boleto}/vender', [LoteController::class, 'vender'])->name('boletos.vender');
+        Route::post('/boletos/{boleto}/liberar', [LoteController::class, 'liberar'])->name('boletos.liberar');
+
+        // Gestión de Vendedores (AQUÍ FALTABAN RUTAS)
+        Route::get('/vendedores', [VendedorController::class, 'index'])->name('vendedores.index');
+        Route::post('/vendedores', [VendedorController::class, 'store'])->name('vendedores.store');
+        Route::put('/vendedores/{user}', [VendedorController::class, 'update'])->name('vendedores.update'); // <--- AGREGAR ESTA (Para editar)
+        Route::delete('/vendedores/{id}', [VendedorController::class, 'destroy'])->name('vendedores.destroy'); // <--- AGREGAR ESTA (Para borrar)
+        Route::post('/vendedores/asignar', [VendedorController::class, 'asignar'])->name('vendedores.asignar');
+
+        // Otras Vistas
+        Route::view('/boletos', 'admin.boletos')->name('boletos');
+        Route::view('/premios', 'admin.premios')->name('premios');
+        Route::view('/reportes', 'admin.reportes')->name('reportes');
+        Route::get('/boletos/{boleto}/imprimir', [LoteController::class, 'imprimirIndividual'])->name('boletos.imprimir');
+
+        // Escáner Admin
+        Route::get('/escaner', [RifaController::class, 'scanView'])->name('escaner.view');
+        Route::post('/escaner/validar', [RifaController::class, 'validarBoleto'])->name('escaner.validar');
+    });
 
     // ==========================================
-    // GESTIÓN DE RIFAS
+    // ZONA VENDEDOR (Role: Vendedor)
     // ==========================================
-    Route::get('/rifas', [RifaController::class, 'index'])->name('rifas');
-    Route::post('/rifas', [RifaController::class, 'store'])->name('rifas.store');
+    Route::middleware('role:vendedor')->prefix('app')->name('app.')->group(function () {
+        
+        // Escáner para el Vendedor
+        Route::get('/escaner', [RifaController::class, 'scanView'])->name('escaner.view');
+        Route::post('/escaner/validar', [RifaController::class, 'validarBoleto'])->name('escaner.validar');
+    });
 
-    Route::get('/rifas/{rifa}/editar', [RifaController::class, 'edit'])->name('rifas.edit');
-    Route::put('/rifas/{rifa}', [RifaController::class, 'update'])->name('rifas.update');
-
-    // Estados de rifa
-    Route::post('/rifas/{rifa}/activar', [RifaController::class, 'activar'])->name('rifas.activar');
-    Route::post('/rifas/{rifa}/finalizar', [RifaController::class, 'finalizar'])->name('rifas.finalizar');
-
-    // ==========================================
-    // GESTIÓN DE LOTES (BOLETOS)
-    // ==========================================
-    Route::get('/rifas/{rifa}/lotes', [LoteController::class, 'index'])->name('rifas.lotes');
-    Route::post('/rifas/{rifa}/lotes', [LoteController::class, 'store'])->name('rifas.lotes.store');
-
-    // Imprimir PDF
-    Route::get('/rifas/{rifa}/imprimir', [LoteController::class, 'imprimir'])->name('rifas.imprimir');
-
-    // Venta Manual
-    Route::post('/boletos/{boleto}/vender', [LoteController::class, 'vender'])->name('boletos.vender');
-    Route::post('/boletos/{boleto}/liberar', [LoteController::class, 'liberar'])->name('boletos.liberar');
-
-    // ==========================================
-    // ESCÁNER ADMINISTRATIVO
-    // ==========================================
-    Route::get('/escaner', [RifaController::class, 'scanView'])->name('escaner.view');
-    Route::post('/escaner/validar', [RifaController::class, 'validarBoleto'])->name('escaner.validar');
-
-    // ==========================================
-    // GESTIÓN DE VENDEDORES Y ASIGNACIONES (NUEVO)
-    // ==========================================
-    Route::get('/vendedores', [VendedorController::class, 'index'])->name('vendedores.index');
-    Route::post('/vendedores', [VendedorController::class, 'store'])->name('vendedores.store');
-    Route::post('/vendedores/asignar', [VendedorController::class, 'asignar'])->name('vendedores.asignar');
-
-    // ==========================================
-    // OTRAS VISTAS SIMPLES
-    // ==========================================
-    Route::view('/boletos', 'admin.boletos')->name('boletos');
-    Route::view('/premios', 'admin.premios')->name('premios');
-    
-    // Esta la dejamos por si quieres un reporte global después, 
-    // pero la acción principal estará en 'vendedores'
-    Route::view('/reportes', 'admin.reportes')->name('reportes');
-
+    // Perfil de Usuario (Breeze)
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+require __DIR__.'/auth.php';

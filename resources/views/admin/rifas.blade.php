@@ -69,7 +69,7 @@
                         <th class="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estado</th>
                         <th class="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Progreso</th>
                         <th class="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Métricas</th>
-                        <th class="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right"></th>
+                        <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-right">Acciones</th>
                     </tr>
                 </thead>
             <tbody class="divide-y divide-slate-100">
@@ -148,31 +148,39 @@
                     </td>
 
                     {{-- 5. ACCIONES (+ BOTÓN FINALIZAR) --}}
-                    <td class="px-6 py-4 text-right">
-                        <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            
-                            {{-- Editar --}}
-                            <button onclick="editarRifa({{ $rifa->id }})" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors" title="Editar">
-                                <i class="ri-settings-3-line text-lg"></i>
-                            </button>
-                            
-                            {{-- Ver Boletos --}}
-                            <a href="{{ route('admin.rifas.lotes', $rifa) }}" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Ver Boletos">
-                                <i class="ri-coupon-line text-lg"></i>
-                            </a>
+<td class="px-6 py-4 text-right whitespace-nowrap">
+    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+        
+        {{-- Editar --}}
+        <button onclick="editarRifa({{ $rifa->id }})" 
+                class="inline-flex items-center justify-center w-9 h-9 text-slate-500 hover:text-blue-600 bg-white hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md" 
+                title="Editar Configuración">
+            <i class="ri-settings-3-line text-lg"></i>
+        </button>
+        
+        {{-- Ver Boletos --}}
+        <a href="{{ route('admin.rifas.lotes', $rifa) }}" 
+           class="inline-flex items-center justify-center w-9 h-9 text-slate-500 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md" 
+           title="Gestionar Boletos">
+            <i class="ri-coupon-line text-lg"></i>
+        </a>
 
-                            {{-- Botón Finalizar Rifa --}}
-                            @if($rifa->estado === 'activa')
-                                <form action="{{ route('admin.rifas.finalizar', $rifa) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas FINALIZAR esta rifa? Ya no se podrán vender más boletos.');" class="inline">
-                                    @csrf
-                                    <button type="submit" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Finalizar Rifa">
-                                        <i class="ri-stop-circle-line text-lg"></i>
-                                    </button>
-                                </form>
-                            @endif
+        {{-- Botón Finalizar Rifa --}}
+        @if($rifa->estado === 'activa')
+            <form action="{{ route('admin.rifas.finalizar', $rifa) }}" method="POST" 
+                  onsubmit="return confirm('¿Seguro que deseas FINALIZAR esta rifa? Ya no se podrán vender más boletos.');" 
+                  class="inline">
+                @csrf
+                <button type="submit" 
+                        class="inline-flex items-center justify-center w-9 h-9 text-slate-500 hover:text-red-600 bg-white hover:bg-red-50 border border-transparent hover:border-red-100 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md" 
+                        title="Finalizar Rifa">
+                    <i class="ri-stop-circle-line text-lg"></i>
+                </button>
+            </form>
+        @endif
 
-                        </div>
-                    </td>
+    </div>
+</td>
                 </tr>
             @empty
                 <tr>

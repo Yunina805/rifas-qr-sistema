@@ -17,11 +17,15 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+   protected $fillable = [
+    'name',
+    'alias',    
+    'email',
+    'telefono',  
+    'password',
+    'role',
+    'activo',    
+];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -44,5 +48,11 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // Relación: Un usuario (vendedor) tiene muchos boletos asignados
+    public function boletos()
+    {
+        return $this->hasMany(Boleto::class, 'vendedor_id');
     }
 }

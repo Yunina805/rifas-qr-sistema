@@ -148,7 +148,7 @@
                         <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-center">Estado</th>
                         <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Detalles Premio</th>
                         <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-center">QR</th>
-                        <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-right"></th>
+                        <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-right">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -204,9 +204,12 @@
 
                         {{-- Acciones --}}
                         <td class="px-6 py-3 text-right">
-                             <button class="text-slate-400 hover:text-indigo-600 transition-colors text-xs font-medium hover:underline">
-                                Editar
-                             </button>
+                            <a href="{{ route('admin.boletos.imprimir', $boleto->id) }}" 
+                            target="_blank"
+                            class="inline-flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors text-xs font-bold uppercase tracking-wider group">
+                                <i class="ri-printer-line text-sm transition-transform group-hover:scale-110"></i>
+                                <span>Imprimir</span>
+                            </a>
                         </td>
                     </tr>
                     @empty

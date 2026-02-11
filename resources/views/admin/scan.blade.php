@@ -3,231 +3,268 @@
 @section('title', 'Escáner QR')
 
 @section('content')
-<div class="p-6 max-w-lg mx-auto">
+<div class="p-4 max-w-lg mx-auto">
     
     <div class="mb-6 text-center">
         <h1 class="text-2xl font-bold text-slate-800">Escáner de Boletos</h1>
-        <p class="text-sm text-slate-500">Apunta la cámara al código QR del boleto.</p>
+        <p class="text-sm text-slate-500">Apunta la cámara al código QR.</p>
     </div>
 
-    <div class="bg-black rounded-2xl overflow-hidden shadow-2xl relative">
-        <div id="reader" class="w-full h-[400px] bg-black"></div>
-        
-        <div class="absolute inset-0 border-2 border-red-500/50 pointer-events-none"></div>
-        <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-red-600 shadow-[0_0_10px_rgba(255,0,0,0.8)] animate-pulse"></div>
+    {{-- CONTENEDOR DE CÁMARA --}}
+    <div class="bg-black rounded-2xl overflow-hidden shadow-2xl relative border-4 border-slate-800">
+        <div id="reader" class="w-full h-[350px] bg-black"></div>
+        {{-- Guía visual --}}
+        <div class="absolute inset-0 border-2 border-white/20 pointer-events-none"></div>
+        <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-pulse"></div>
     </div>
 
-    <div id="resultado" class="hidden mt-6 p-4 rounded-xl border-l-4 shadow-sm transition-all">
-        <h3 id="resTitulo" class="font-bold text-lg"></h3>
-        <p id="resMensaje" class="text-sm"></p>
-        <div id="resDetalle" class="mt-2 text-xs bg-white/50 p-2 rounded"></div>
+    {{-- BOTÓN REINTENTAR (Aparece si hay error) --}}
+    <div id="retry-area" class="hidden mt-4 text-center">
+        <button onclick="resetScanner()" class="bg-slate-800 text-white px-6 py-2 rounded-full font-bold shadow-md">
+            <i class="ri-refresh-line"></i> Escanear otro
+        </button>
+    </div>
+
+    {{-- TARJETA DE RESULTADOS --}}
+    <div id="resultado" class="hidden mt-6 p-5 rounded-2xl border bg-white shadow-xl transition-all animate-fade-in-up">
         
-        <div id="acciones" class="mt-4 flex gap-2 hidden">
-            <button id="btnVender" class="flex-1 bg-green-600 text-white py-2 rounded font-bold shadow hover:bg-green-700">
-                ✅ Confirmar Venta
-            </button>
-            <button id="btnEntregar" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold shadow hover:bg-blue-700">
-                🏆 Entregar Premio
+        {{-- Info básica (Siempre visible al detectar) --}}
+        <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-800 border-2 border-slate-200">
+                <i class="ri-coupon-3-fill text-2xl"></i>
+            </div>
+            <div>
+                <h3 class="text-2xl font-black text-slate-900 leading-tight" id="resFolio">#0000</h3>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest" id="resRifa">Nombre de la Rifa</p>
+            </div>
+        </div>
+
+        <div id="resDetalleBasico" class="space-y-2 text-sm border-t border-slate-100 pt-3">
+            <p class="flex justify-between">
+                <span class="text-slate-400 font-medium">Estado:</span> 
+                <span id="resEstado" class="font-bold px-2 py-0.5 rounded-md">---</span>
+            </p>
+            <p class="flex justify-between">
+                <span class="text-slate-400 font-medium">Precio:</span> 
+                <span id="resPrecio" class="font-bold text-slate-800">---</span>
+            </p>
+        </div>
+
+        {{-- PASO 1: Botón Validar --}}
+        <div id="areaValidar" class="mt-6">
+            <button onclick="revelarEstatus()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-lg shadow-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2 transform active:scale-95">
+                <i class="ri-shield-check-line text-xl"></i>
+                VALIDAR PREMIO
             </button>
         </div>
-    </div>
 
+        {{-- PASO 2: Info Ganador (Oculta al inicio) --}}
+        <div id="areaGanador" class="hidden mt-4 pt-4 border-t-2 border-dashed border-slate-100">
+            <div id="bannerGanador" class="p-4 rounded-xl flex items-center gap-3 mb-4">
+                <div id="iconGanador" class="p-2 rounded-full"></div>
+                <div>
+                    <p id="msgGanador" class="font-black text-sm uppercase"></p>
+                    <p id="subMsgGanador" class="text-xs"></p>
+                </div>
+            </div>
+
+            {{-- Botones Finales (Vender/Entregar) --}}
+            <div id="accionesFinales" class="grid grid-cols-1 gap-3">
+                <button id="btnVender" class="hidden w-full bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all">
+                    ✅ CONFIRMAR VENTA
+                </button>
+                <button id="btnEntregar" class="hidden w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-all">
+                    🏆 FINALIZAR
+                </button>
+                <button onclick="resetScanner()" class="w-full bg-slate-100 text-slate-600 py-2 rounded-xl font-bold text-xs mt-2 hover:bg-slate-200">
+                    ESCANEAR SIGUIENTE
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
+{{-- Librería QR --}}
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
+{{-- Sonidos --}}
 <audio id="beep-ok" src="https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3"></audio>
 <audio id="beep-error" src="https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3"></audio>
 
 <script>
-    // Configuración del Escáner
     const html5QrCode = new Html5Qrcode("reader");
-    let isScanning = true; // Para evitar lecturas dobles muy rápidas
-    let lastCode = ""; 
+    let isScanning = true;
+    let scanData = null; 
+    let currentCode = null;
 
-    function onScanSuccess(decodedText, decodedResult) {
-        // --- ZONA DE PRUEBAS (Debug) ---
-        console.log("👁️ ¡OJO! La cámara detectó este texto:", decodedText);
-        // -------------------------------
+    // Detectamos la ruta dinámicamente según el rol del usuario logueado
+    // Esto evita el "Error de conexión" cuando el vendedor intenta usar la ruta de admin
+    const rutaValidar = "{{ Auth::user()->role === 'admin' ? route('admin.escaner.validar') : route('app.escaner.validar') }}";
 
-        if (!isScanning || decodedText === lastCode) {
-            console.log("...Lectura repetida ignorada...");
-            return;
-        }
+    function onScanSuccess(decodedText) {
+        if (!isScanning) return;
         
-        // Pausamos brevemente para no saturar
-        lastCode = decodedText;
-        console.log("🚀 Enviando al backend..."); // Aviso de envío
+        isScanning = false;
+        currentCode = decodedText;
         
-        // Enviamos al Backend
-        fetch("{{ route('admin.escaner.validar') }}", {
+        // Efecto visual de "procesando"
+        document.getElementById('reader').style.opacity = "0.5";
+
+        // Consultar al servidor usando la ruta dinámica
+        fetch(rutaValidar, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRF-TOKEN": "{{ csrf_token() }}" 
             },
             body: JSON.stringify({ codigo_qr: decodedText })
         })
-        .then(response => {
-            // Si el servidor falla, queremos saber por qué
-            if (!response.ok) {
-                throw new Error("Error del Servidor: " + response.status);
-            }
-            return response.json();
+        .then(res => {
+            if (!res.ok) throw new Error("Error en la respuesta del servidor");
+            return res.json();
         })
         .then(data => {
-            console.log("✅ Respuesta recibida:", data); // Ver qué respondió Laravel
-            mostrarResultado(data, decodedText);
-        })
-        .catch(error => {
-            console.error('❌ Error grave:', error);
-            alert("Error de conexión: " + error.message);
-        });
-    }
-
-    function mostrarResultado(data, codigoQr) {
-        const div = document.getElementById('resultado');
-        const titulo = document.getElementById('resTitulo');
-        const mensaje = document.getElementById('resMensaje');
-        const detalle = document.getElementById('resDetalle');
-        const acciones = document.getElementById('acciones');
-        const btnVender = document.getElementById('btnVender');
-        const btnEntregar = document.getElementById('btnEntregar');
-
-        // Limpieza de clases previas
-        div.classList.remove('hidden', 'bg-green-50', 'border-green-500', 'bg-yellow-50', 'border-yellow-500', 'bg-red-50', 'border-red-500', 'bg-blue-50', 'border-blue-500', 'bg-slate-50', 'border-slate-400', 'bg-amber-50', 'border-amber-500', 'text-green-800', 'text-yellow-800', 'text-red-800', 'text-blue-900', 'text-slate-700', 'text-amber-900');
-        acciones.classList.add('hidden');
-        
-        // Reproducir sonido
-        if(data.success) {
-            document.getElementById('beep-ok').play();
-        } else {
-            document.getElementById('beep-error').play();
-        }
-
-        // --- CASO 1: CONSULTA (Cuando escaneas por primera vez) ---
-        if (data.tipo === 'consulta') {
-            
-            titulo.innerText = "Boleto Detectado";
-            mensaje.innerText = "Folio: " + data.boleto.folio;
-            
-            let htmlEstadoBoleto = '';
-
-            // ---------------------------------------------------------
-            // OPCIÓN A: ES GANADOR (Dorado 🏆)
-            // ---------------------------------------------------------
-            if (data.boleto.es_ganador == 1 || data.boleto.es_ganador === true) {
-                div.classList.add('bg-amber-50', 'border-amber-500', 'text-amber-900');
-                
-                htmlEstadoBoleto = `
-                    <div class="mt-3 mb-2 p-3 bg-white/80 rounded-lg border border-amber-200 flex items-center gap-3 shadow-sm animate-pulse">
-                        <div class="bg-amber-100 p-2 rounded-full text-amber-600">
-                            <i class="ri-trophy-fill text-2xl"></i>
-                        </div>
-                        <div>
-                            <p class="font-bold text-sm text-amber-700">¡ES UN BOLETO GANADOR!</p>
-                            <p class="text-xs font-mono text-amber-600 font-bold">Premio: $${data.boleto.premio}</p>
-                        </div>
-                    </div>
-                `;
-            } 
-            // ---------------------------------------------------------
-            // OPCIÓN B: NO ES GANADOR (Gris 🎫)
-            // ---------------------------------------------------------
-            else {
-                div.classList.add('bg-slate-50', 'border-slate-400', 'text-slate-700');
-                
-                htmlEstadoBoleto = `
-                    <div class="mt-3 mb-2 p-3 bg-white/60 rounded-lg border border-slate-200 flex items-center gap-3 shadow-sm">
-                        <div class="bg-slate-200 p-2 rounded-full text-slate-500">
-                            <i class="ri-emotion-normal-line text-2xl"></i>
-                        </div>
-                        <div>
-                            <p class="font-bold text-sm text-slate-600">Boleto No Premiado</p>
-                            <p class="text-xs text-slate-400">Suerte para la próxima.</p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Construimos el detalle completo
-            let htmlDetalle = `
-                ${htmlEstadoBoleto}
-                <div class="grid grid-cols-2 gap-y-1 gap-x-4 text-xs mt-2 border-t border-black/5 pt-2">
-                    <div><strong>Estado:</strong> <span class="uppercase font-bold">${data.boleto.estado}</span></div>
-                    <div><strong>Costo:</strong> $${data.boleto.precio}</div>
-                    <div class="col-span-2 mt-1">
-                        <strong>Vendedor Asignado:</strong><br>
-                        ${data.boleto.vendedor}
-                    </div>
-                </div>
-            `;
-            detalle.innerHTML = htmlDetalle;
-
-            // Botones de Acción
-            acciones.classList.remove('hidden');
-            
-            // Lógica de Botones (Vender o Entregar)
-            if(data.boleto.estado === 'Disponible') {
-                btnVender.style.display = 'block';
-                // Al hacer clic, enviamos la acción 'vender'
-                btnVender.onclick = () => procesarAccion(codigoQr, 'vender');
-                btnEntregar.style.display = 'none';
-
-            } else if (data.boleto.estado === 'Vendido' && (data.boleto.es_ganador == 1 || data.boleto.es_ganador === true)) {
-                // Solo si es GANADOR y VENDIDO se puede entregar premio
-                btnVender.style.display = 'none';
-                btnEntregar.style.display = 'block';
-                btnEntregar.onclick = () => procesarAccion(codigoQr, 'entregar');
-
+            if(data.success) {
+                document.getElementById('beep-ok').play();
+                prepararVistaPrevia(data);
             } else {
-                // Si ya está vendido y no gana nada, no hay botones
-                acciones.classList.add('hidden'); 
+                mostrarError(data.message);
             }
-
-        // --- CASO 2: ÉXITO EN ACCIÓN (Ya se vendió o entregó) ---
-        } else if (data.success) {
-            div.classList.add('bg-green-50', 'border-green-500', 'text-green-800');
-            titulo.innerText = "¡Operación Exitosa!";
-            mensaje.innerText = data.mensaje;
-            detalle.innerHTML = data.datos_extra || ''; 
-            setTimeout(() => { lastCode = ""; }, 2500); 
-
-        // --- CASO 3: ERROR (Boleto no existe o error del sistema) ---
-        } else {
-            div.classList.add('bg-red-50', 'border-red-500', 'text-red-800');
-            titulo.innerText = "Error";
-            mensaje.innerText = data.message;
-            detalle.innerHTML = "";
-            setTimeout(() => { lastCode = ""; }, 2500);
-        }
-    }
-
-    // Función para confirmar Venta o Entrega
-    function procesarAccion(codigo, accion) {
-        fetch("{{ route('admin.escaner.validar') }}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-            },
-            body: JSON.stringify({ codigo_qr: codigo, accion: accion })
         })
-        .then(response => response.json())
-        .then(data => {
-            mostrarResultado(data, codigo);
+        .catch(err => {
+            console.error(err);
+            mostrarError("Error de conexión o permisos insuficientes.");
         });
     }
 
-    // Iniciar cámara
-    html5QrCode.start(
-        { facingMode: "environment" }, 
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        onScanSuccess
-    ).catch(err => {
-        console.log("Error iniciando cámara", err);
-        alert("No se pudo iniciar la cámara. Asegúrate de dar permisos.");
-    });
+    function prepararVistaPrevia(data) {
+        scanData = data; 
+        
+        const div = document.getElementById('resultado');
+        const areaValidar = document.getElementById('areaValidar');
+        const areaGanador = document.getElementById('areaGanador');
+        const retry = document.getElementById('retry-area');
 
+        div.classList.remove('hidden');
+        areaValidar.classList.remove('hidden');
+        areaGanador.classList.add('hidden');
+        retry.classList.remove('hidden');
+
+        // Llenar datos básicos (Folio, Rifa, Precio)
+        document.getElementById('resFolio').innerText = "Folio: " + (data.boleto.folio || '---');
+        document.getElementById('resRifa').innerText = data.boleto.rifa_nombre || 'Sorteo Activo';
+        document.getElementById('resPrecio').innerText = "$" + data.boleto.precio;
+        
+        const estado = document.getElementById('resEstado');
+        estado.innerText = data.boleto.estado.toUpperCase();
+        
+        // Color inicial del estado
+        estado.className = "font-bold px-2 py-0.5 rounded-md " + 
+            (data.boleto.estado.toLowerCase() === 'disponible' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700');
+    }
+
+    function revelarEstatus() {
+        const areaValidar = document.getElementById('areaValidar');
+        const areaGanador = document.getElementById('areaGanador');
+        const banner = document.getElementById('bannerGanador');
+        const iconDiv = document.getElementById('iconGanador');
+        const msg = document.getElementById('msgGanador');
+        const subMsg = document.getElementById('subMsgGanador');
+        const btnEntregar = document.getElementById('btnEntregar');
+        const estadoLabel = document.getElementById('resEstado');
+
+        areaValidar.classList.add('hidden');
+        areaGanador.classList.remove('hidden');
+
+        // Actualizamos el estado a VENDIDO (ya que el controlador lo procesó)
+        estadoLabel.innerText = "VENDIDO";
+        estadoLabel.className = "font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-700";
+
+        // Lógica de Revelación
+        if (scanData.boleto.es_ganador == 1 || scanData.boleto.es_ganador === true) {
+            banner.className = "p-4 rounded-xl flex items-center gap-3 mb-4 bg-amber-50 border-2 border-amber-200 animate-bounce";
+            iconDiv.className = "p-2 rounded-full bg-amber-100 text-amber-600";
+            iconDiv.innerHTML = '<i class="ri-trophy-fill text-2xl"></i>';
+            
+            msg.innerText = "¡ESTE BOLETO TIENE PREMIO!";
+            msg.className = "font-black text-sm uppercase text-amber-700 leading-none";
+            
+            subMsg.innerText = "Premio: $" + scanData.boleto.premio;
+            subMsg.className = "text-xs text-amber-600 font-bold mt-1";
+
+            // Botón para entregar premio si el admin o vendedor tienen permiso
+            btnEntregar.classList.remove('hidden');
+            btnEntregar.onclick = () => procesarAccion('entregar');
+        } else {
+            banner.className = "p-4 rounded-xl flex items-center gap-3 mb-4 bg-slate-50 border border-slate-200";
+            iconDiv.className = "p-2 rounded-full bg-slate-200 text-slate-500";
+            iconDiv.innerHTML = '<i class="ri-emotion-sad-line text-2xl"></i>';
+            
+            msg.innerText = "Boleto No Premiado";
+            msg.className = "font-black text-sm uppercase text-slate-600 leading-none";
+            
+            subMsg.innerText = "Gracias por participar.";
+            subMsg.className = "text-xs text-slate-400 mt-1";
+            btnEntregar.classList.add('hidden');
+        }
+    }
+
+    function procesarAccion(accion) {
+        fetch(rutaValidar, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRF-TOKEN": "{{ csrf_token() }}" 
+            },
+            body: JSON.stringify({ codigo_qr: currentCode, accion: accion })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.mensaje || "Operación realizada");
+            resetScanner();
+        })
+        .catch(err => alert("Error al procesar la acción."));
+    }
+
+    function mostrarError(txt) {
+        document.getElementById('beep-error').play();
+        alert(txt);
+        resetScanner();
+    }
+
+    function resetScanner() {
+        document.getElementById('resultado').classList.add('hidden');
+        document.getElementById('retry-area').classList.add('hidden');
+        document.getElementById('reader').style.opacity = "1";
+        isScanning = true;
+        scanData = null;
+        currentCode = null;
+    }
+
+    function startCamera() {
+        const config = { 
+            fps: 15, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+        };
+
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+        .catch(err => {
+            console.error("Error cámara trasera, intentando frontal:", err);
+            html5QrCode.start({ facingMode: "user" }, config, onScanSuccess);
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", startCamera);
 </script>
+
+<style>
+    .animate-fade-in-up {
+        animation: fadeInUp 0.3s ease-out;
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
 @endsection

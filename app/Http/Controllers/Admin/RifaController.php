@@ -197,92 +197,41 @@ class RifaController extends Controller
 
     public function validarBoleto(Request $request)
     {
-        // 1. Limpieza del código QR
-        $rawCode = $request->input('codigo_qr');
-        $codigo = basename($rawCode); 
+        $codigo = $request->codigo_qr;
+        $accion = $request->accion; // 'vender' o 'entregar'
 
-        // 2. Buscamos el boleto y su Vendedor
-        $boleto = Boleto::where('codigo_qr', $codigo)->with(['rifa', 'vendedor'])->first();
+        // 1. Buscamos el boleto por su código QR
+        $boleto = Boleto::where('codigo_qr', $codigo)->first();
 
         if (!$boleto) {
-            return response()->json(['success' => false, 'message' => 'Código no encontrado en el sistema.']);
+            return response()->json(['success' => false, 'message' => 'Boleto no encontrado']);
         }
 
-        // 3. Preparamos el nombre del vendedor
-        $nombreVendedor = $boleto->vendedor ? $boleto->vendedor->nombre : 'Venta Directa / Oficina';
-
-        $accion = $request->input('accion'); 
-
-        // --- ACCIÓN 1: VENTA RÁPIDA ---
-        if ($accion === 'vender') {
-            if ($boleto->estado === 'disponible') {
-                $boleto->update([
-                    'estado'       => 'vendido',
-                    'fecha_venta'  => now(),
-                    'cliente_nombre' => 'Venta por Escáner',
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'tipo'    => 'venta_exitosa',
-                    'mensaje' => "¡Venta Registrada!",
-                    'datos_extra' => "Vendedor: " . $nombreVendedor . " | Costo: $" . number_format($boleto->rifa->precio_boleto, 2),
-                    'boleto'  => $boleto,
-                    'vendedor'=> $nombreVendedor
-                ]);
-            }
-
-            if ($boleto->estado === 'vendido') {
-                return response()->json([
-                    'success' => false,
-                    'tipo'    => 'ya_vendido',
-                    'message' => 'Este boleto YA fue vendido anteriormente por: ' . $nombreVendedor
-                ]);
-            }
-        }
-
-        // --- ACCIÓN 2: ENTREGA DE PREMIO ---
-        if ($accion === 'entregar') {
-            if ($boleto->es_ganador && $boleto->estado === 'vendido') {
-                $boleto->update([
-                    'estado' => 'entregado',
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'tipo'    => 'entrega_exitosa',
-                    'mensaje' => "¡Premio entregado correctamente!",
-                    'boleto'  => $boleto,
-                    'vendedor'=> $nombreVendedor
-                ]);
-            }
-
-            if ($boleto->estado === 'entregado') {
-                return response()->json([
-                    'success' => false,
-                    'tipo'    => 'ya_entregado',
-                    'message' => 'ALERTA: Este premio YA FUE COBRADO anteriormente.'
-                ]);
-            }
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'No se puede entregar. El boleto no es ganador o no ha sido vendido.'
+        // --- NUEVA LÓGICA DE AUTO-VENTA ---
+        // Si el boleto está disponible y el usuario presionó el botón de "Validar" 
+        // (que en el JS envía la petición inicial), lo vendemos automáticamente.
+        if ($boleto->estado === 'disponible') {
+            $boleto->update([
+                'estado' => 'vendido',
+                'vendedor_id' => auth()->id(), // Registramos quién lo vendió
+                'fecha_venta' => now()
             ]);
         }
 
-        // --- RESPUESTA ESTÁNDAR (CONSULTA / ESCANEO) ---
+        // 2. Preparamos la respuesta para el escáner
         return response()->json([
             'success' => true,
-            'tipo'    => 'consulta',
-            'boleto'  => [
-                'folio'       => $boleto->folio,
-                'estado'      => ucfirst($boleto->estado),
-                'es_ganador'  => $boleto->es_ganador,
-                'premio'      => $boleto->premio,
+            'tipo' => 'consulta',
+            'mensaje' => 'Boleto procesado correctamente',
+            'boleto' => [
+                'id' => $boleto->id,
+                'folio' => $boleto->folio,
                 'rifa_nombre' => $boleto->rifa->nombre,
-                'precio'      => $boleto->rifa->precio_boleto,
-                'vendedor'    => $nombreVendedor
+                'precio' => $boleto->rifa->precio_boleto,
+                'estado' => $boleto->estado, // Ahora devolverá "vendido"
+                'es_ganador' => $boleto->es_ganador,
+                'premio' => $boleto->premio,
+                'vendedor' => $boleto->vendedor->name ?? 'Sin asignar'
             ]
         ]);
     }

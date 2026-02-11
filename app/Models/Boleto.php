@@ -28,8 +28,10 @@ class Boleto extends Model
         return $this->belongsTo(Rifa::class);
     }
 
+    
     public function vendedor()
     {
-        return $this->belongsTo(Vendedor::class);
+        // Ahora un boleto pertenece a un Usuario (que tiene el rol de vendedor)
+        return $this->belongsTo(User::class, 'vendedor_id');
     }
 }
