@@ -2,207 +2,154 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Boleto #{{ $boleto->folio }} - {{ $boleto->rifa->nombre }}</title>
+    <title>Boleto Digital - {{ $boleto->rifa->nombre }}</title>
     <style>
-        /* --- CONFIGURACIÓN DE PÁGINA --- */
-        @page {
-            margin: 0.5cm;
-            size: letter;
-        }
+        /* --- RESET Y BASES --- */
+        @page { margin: 0.5cm; size: letter; }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
-            color: #333;
-            margin: 0;
-            padding: 0;
             background-color: #fff;
+            margin: 0; padding: 0;
         }
 
-        /* --- CONTENEDOR PRINCIPAL DEL BOLETO --- */
-        .ticket-wrapper {
+        /* --- TICKET CONTENEDOR --- */
+        .ticket {
             width: 100%;
-            height: 230px; 
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 12px; 
-            overflow: hidden;
+            max-width: 700px; /* Un poco más ancho para que respire */
+            border: 2px solid #ef6c00; /* Borde Naranja */
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden; /* Mantiene todo dentro de las curvas */
             position: relative;
             background-color: #fff;
         }
 
-        /* --- ESTRUCTURA DE TABLA --- */
-        table.layout {
+        /* --- HEADER (TÍTULO) --- */
+        .header {
+            background-color: #ef6c00;
+            color: white;
+            padding: 15px 20px;
+            border-bottom: 5px solid #0d47a1; /* Contraste Azul */
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .header-meta {
+            margin-top: 5px;
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        /* --- CUERPO (TABLA MAESTRA) --- */
+        .layout-table {
             width: 100%;
-            height: 100%;
             border-collapse: collapse;
         }
-        td.section {
+        .col-left {
+            width: 68%;
+            padding: 20px;
             vertical-align: top;
-            padding: 0;
+        }
+        .col-right {
+            width: 32%;
+            background-color: #f4f6f8; /* Gris muy tenue para separar visualmente */
+            border-left: 2px dashed #ccc;
+            text-align: center;
+            vertical-align: middle;
+            position: relative;
+            padding: 10px;
         }
 
-        /* --- SECCIÓN IZQUIERDA: TALÓN (CONTROL) --- */
-        .stub {
-            width: 25%;
-            background-color: #f4f4f4;
-            border-right: 2px dashed #bbb; 
-            position: relative;
-            padding: 15px !important;
-            box-sizing: border-box;
+        /* --- SECCIONES DE DATOS (IZQUIERDA) --- */
+        
+        /* 1. Folio Principal */
+        .section-folio {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
         }
-        .stub-header {
-            text-transform: uppercase;
+        .label {
             font-size: 10px;
-            color: #777;
-            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #7f8c8d;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .folio-number {
+            font-size: 42px; /* Más grande e impactante */
+            color: #0d47a1;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: 2px;
+        }
+
+        /* 2. Oportunidades Extra */
+        .section-lucky {
+            margin-bottom: 15px;
+        }
+        .lucky-grid {
+            margin-top: 5px;
+        }
+        .lucky-badge {
+            display: inline-block;
+            background-color: #fff3e0; /* Fondo naranja muy suave */
+            color: #e65100;
+            border: 1px solid #ffcc80;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-right: 5px;
             margin-bottom: 5px;
         }
-        .stub-folio {
-            font-size: 16px;
-            font-weight: 900;
-            color: #d32f2f;
-            background: #fff;
-            display: inline-block;
-            padding: 2px 8px;
-            border: 1px solid #d32f2f;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        .stub-form {
+
+        /* 3. Footer Legal */
+        .footer-legal {
+            margin-top: 20px;
             font-size: 9px;
-            color: #555;
-            line-height: 2.2; 
-        }
-        .cut-icon {
-            position: absolute;
-            right: -9px;
-            top: 50%;
-            font-size: 14px;
-            background: #fff;
-            color: #999;
-            height: 20px;
-            line-height: 20px;
+            color: #95a5a6;
+            line-height: 1.3;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
         }
 
-        /* --- SECCIÓN DERECHA: CUERPO DEL BOLETO --- */
-        .main-body {
-            width: 75%;
-            padding: 0 !important;
-            position: relative;
-        }
-
-        .ticket-header {
-            background-color: #0d1b2a; 
-            color: #fff;
-            padding: 10px 20px;
-            border-bottom: 3px solid #e63946; 
-        }
-        .header-title {
-            font-size: 16px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .header-sub {
-            font-size: 10px;
-            color: #ccc;
-            margin-top: 2px;
-        }
-
-        .content-area {
-            padding: 15px 20px;
-            position: relative;
-        }
-
-        .price-badge {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            background-color: #e63946;
+        /* --- SECCIÓN VISUAL (DERECHA) --- */
+        .price-tag {
+            background-color: #0d47a1;
             color: white;
-            padding: 5px 15px;
-            border-radius: 50px;
+            padding: 8px 15px;
+            border-radius: 20px;
             font-weight: bold;
             font-size: 18px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: inline-block;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        .main-folio-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: #777;
-            font-weight: bold;
-        }
-        .main-folio {
-            font-size: 38px;
-            font-weight: 900;
-            color: #1d3557; 
-            letter-spacing: 2px;
-            margin-top: -5px;
-            font-family: 'Courier New', monospace;
-        }
-
-        .lucky-numbers-container {
-            margin-top: 15px;
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 8px 12px;
-            display: inline-block;
-            width: 65%; 
-        }
-        .lucky-label {
-            font-size: 9px;
-            font-weight: bold;
-            color: #457b9d;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-            display: block;
-        }
-        .num-badge {
-            display: inline-block;
-            background: #fff;
-            border: 1px solid #457b9d;
-            color: #1d3557;
-            font-weight: bold;
-            font-size: 12px;
-            padding: 4px 0;
-            width: 32px;
-            text-align: center;
+        .qr-container img {
+            border: 4px solid #fff;
             border-radius: 4px;
-            margin-right: 4px;
-            font-family: 'Courier New', monospace;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .scan-caption {
+            display: block;
+            margin-top: 8px;
+            font-size: 10px;
+            color: #555;
+            font-weight: bold;
+            text-transform: uppercase;
         }
 
-        .qr-area {
-            position: absolute;
-            bottom: 10px;
-            right: 15px;
-            text-align: center;
-        }
-        .qr-box {
-            border: 1px solid #ddd;
-            padding: 4px;
-            background: #fff;
-            border-radius: 6px;
-            display: inline-block;
-        }
-        
-        .legal-text {
-            position: absolute;
-            bottom: 10px;
-            left: 20px;
-            width: 60%;
-            font-size: 8px;
-            color: #999;
-            text-align: justify;
-            line-height: 1.2;
-        }
     </style>
 </head>
 <body>
 
     @php
-        // Generamos los 5 números de la suerte para este boleto individual
+        // Simulación de datos para lógica (igual que la tuya)
         $oportunidades = [];
         while(count($oportunidades) < 5) {
             $n = str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT);
@@ -211,62 +158,50 @@
         sort($oportunidades);
     @endphp
 
-    <div class="ticket-wrapper">
-        <table class="layout">
+    <div class="ticket">
+        
+        <div class="header">
+            <h1>{{ $boleto->rifa->nombre }}</h1>
+            <div class="header-meta">
+                📅 <strong>Sorteo:</strong> {{ date('d/m/Y') }} &nbsp;|&nbsp; 
+                📍 <strong>Sede:</strong> {{ $boleto->rifa->sede }}
+            </div>
+        </div>
+
+        <table class="layout-table">
             <tr>
-                <td class="section stub">
-                    <div class="stub-header">Talón de Control</div>
-                    <div class="stub-folio">{{ $boleto->folio }}</div>
+                <td class="col-left">
                     
-                    <div class="stub-form">
-                        Nombre:<br>_______________________<br>
-                        Teléfono:<br>_______________________<br>
-                        Dirección:<br>_______________________
+                    <div class="section-folio">
+                        <span class="label">Tu Boleto Ganador</span>
+                        <div class="folio-number">{{ $boleto->folio }}</div>
                     </div>
-                    <div class="cut-icon">✂</div>
+
+                    <div class="section-lucky">
+                        <div class="lucky-grid">
+                            @foreach($oportunidades as $op)
+                                <span class="lucky-badge">{{ $op }}</span>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="footer-legal">
+                        <strong>ID Único:</strong> {{ substr($boleto->codigo_qr, 0, 16) }}...<br>
+                        Este boleto digital acredita tu participación. Debe presentarse legible para reclamar premios. 
+                        Caducidad: 2 días post-evento.
+                    </div>
                 </td>
 
-                <td class="section main-body">
+                <td class="col-right">
                     
-                    <div class="ticket-header">
-                        <div class="header-title">{{ $boleto->rifa->nombre }}</div>
-                        <div class="header-sub">📍 {{ $boleto->rifa->sede }} | 📅 Fecha: {{ date('d/m/Y') }}</div>
+                    <div class="price-tag">
+                        ${{ number_format($boleto->rifa->precio_boleto, 0) }}
                     </div>
 
-                    <div class="content-area">
-                        
-                        <div class="price-badge">
-                            ${{ number_format($boleto->rifa->precio_boleto, 0) }}
-                        </div>
-
-                        <div class="main-folio-label"># de Folio</div>
-                        <div class="main-folio">Nº {{ $boleto->folio }}</div>
-
-                        <div class="lucky-numbers-container">
-                            <span class="lucky-label">✨ Tus 5 Oportunidades Adicionales:</span>
-                            <div class="numbers-row">
-                                @foreach($oportunidades as $op)
-                                    <span class="num-badge">{{ $op }}</span>
-                                @endforeach
-                            </div>
-                        </div>
-
+                    <div class="qr-container">
+                        <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(120)->generate($boleto->codigo_qr)) }}" width="120">
                     </div>
-
-                    <div class="legal-text">
-                        <strong>CONDICIONES:</strong> Este boleto participa bajo las normas establecidas. 
-                        Conserve este talón original para reclamar su premio. 
-                        Caducidad: 30 días posteriores al sorteo.
-                        <br><span style="color: #bbb;">ID Único: {{ substr($boleto->codigo_qr, 0, 12) }}</span>
-                    </div>
-
-                    <div class="qr-area">
-                        <div class="qr-box">
-                            {{-- Generación del QR usando la ruta de verificación --}}
-                            <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(70)->generate(route('boleto.verificar', $boleto->codigo_qr))) }}" width="70" height="70">
-                        </div>
-                        <div style="font-size: 8px; font-weight: bold; color: #0d1b2a; margin-top: 2px;">Verificar</div>
-                    </div>
+                    <span class="scan-caption">Escanear para verificar</span>
 
                 </td>
             </tr>

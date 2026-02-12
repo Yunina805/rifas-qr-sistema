@@ -198,40 +198,68 @@ class RifaController extends Controller
     public function validarBoleto(Request $request)
     {
         $codigo = $request->codigo_qr;
-        $accion = $request->accion; // 'vender' o 'entregar'
-
-        // 1. Buscamos el boleto por su código QR
         $boleto = Boleto::where('codigo_qr', $codigo)->first();
 
         if (!$boleto) {
             return response()->json(['success' => false, 'message' => 'Boleto no encontrado']);
         }
 
-        // --- NUEVA LÓGICA DE AUTO-VENTA ---
-        // Si el boleto está disponible y el usuario presionó el botón de "Validar" 
-        // (que en el JS envía la petición inicial), lo vendemos automáticamente.
-        if ($boleto->estado === 'disponible') {
-            $boleto->update([
-                'estado' => 'vendido',
-                'vendedor_id' => auth()->id(), // Registramos quién lo vendió
-                'fecha_venta' => now()
+        $estadoActual = strtolower($boleto->estado);
+
+        // BLOQUEO 1: Si ya fue vendido/utilizado
+        if ($estadoActual === 'vendido') {
+            return response()->json([
+                'success' => true,
+                'status_type' => 'utilizado',
+                'mensaje' => 'Este boleto ya fue procesado y vendido.',
+                'boleto' => [
+                    'folio' => $boleto->folio,
+                    'rifa_nombre' => $boleto->rifa->nombre,
+                    'vendedor' => $boleto->vendedor->name ?? 'N/A'
+                ]
             ]);
         }
 
-        // 2. Preparamos la respuesta para el escáner
+        // BLOQUEO 2: Si es inválido (Anulado)
+        if ($estadoActual === 'invalido') {
+            return response()->json([
+                'success' => true,
+                'status_type' => 'invalido',
+                'mensaje' => 'ATENCIÓN: Boleto anulado o no válido.',
+                'boleto' => ['folio' => $boleto->folio]
+            ]);
+        }
+
+        // PASO 2: ACCIÓN DE VALIDAR (Aquí es donde pasa a VENDIDO)
+        if ($request->has('confirmar_venta')) {
+            $boleto->update([
+                'estado' => 'vendido',
+                'vendedor_id' => auth()->id(),
+                'fecha_venta' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'status_type' => 'revelacion',
+                'mensaje' => '¡Venta registrada con éxito!',
+                'boleto' => [
+                    'folio' => $boleto->folio,
+                    'rifa_nombre' => $boleto->rifa->nombre,
+                    'es_ganador' => (bool)$boleto->es_ganador,
+                    'premio' => $boleto->premio
+                ]
+            ]);
+        }
+
+        // PASO 1: CONSULTA INICIAL (Disponible)
         return response()->json([
             'success' => true,
-            'tipo' => 'consulta',
-            'mensaje' => 'Boleto procesado correctamente',
+            'status_type' => 'disponible',
             'boleto' => [
-                'id' => $boleto->id,
                 'folio' => $boleto->folio,
                 'rifa_nombre' => $boleto->rifa->nombre,
                 'precio' => $boleto->rifa->precio_boleto,
-                'estado' => $boleto->estado, // Ahora devolverá "vendido"
-                'es_ganador' => $boleto->es_ganador,
-                'premio' => $boleto->premio,
-                'vendedor' => $boleto->vendedor->name ?? 'Sin asignar'
+                'estado' => 'DISPONIBLE'
             ]
         ]);
     }

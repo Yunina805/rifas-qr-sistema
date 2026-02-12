@@ -74,7 +74,7 @@
                     ✅ CONFIRMAR VENTA
                 </button>
                 <button id="btnEntregar" class="hidden w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-all">
-                    🏆 FINALIZAR
+                    🏆 FELICIDADES
                 </button>
                 <button onclick="resetScanner()" class="w-full bg-slate-100 text-slate-600 py-2 rounded-xl font-bold text-xs mt-2 hover:bg-slate-200">
                     ESCANEAR SIGUIENTE
@@ -97,8 +97,7 @@
     let scanData = null; 
     let currentCode = null;
 
-    // Detectamos la ruta dinámicamente según el rol del usuario logueado
-    // Esto evita el "Error de conexión" cuando el vendedor intenta usar la ruta de admin
+    // Ruta dinámica según el rol para evitar errores de permisos
     const rutaValidar = "{{ Auth::user()->role === 'admin' ? route('admin.escaner.validar') : route('app.escaner.validar') }}";
 
     function onScanSuccess(decodedText) {
@@ -107,10 +106,10 @@
         isScanning = false;
         currentCode = decodedText;
         
-        // Efecto visual de "procesando"
+        // Feedback visual de carga
         document.getElementById('reader').style.opacity = "0.5";
 
-        // Consultar al servidor usando la ruta dinámica
+        // Paso 1: Consulta inicial al servidor
         fetch(rutaValidar, {
             method: "POST",
             headers: { 
@@ -139,120 +138,140 @@
 
     function prepararVistaPrevia(data) {
         scanData = data; 
-        
         const div = document.getElementById('resultado');
         const areaValidar = document.getElementById('areaValidar');
         const areaGanador = document.getElementById('areaGanador');
         const retry = document.getElementById('retry-area');
 
         div.classList.remove('hidden');
-        areaValidar.classList.remove('hidden');
-        areaGanador.classList.add('hidden');
         retry.classList.remove('hidden');
 
-        // Llenar datos básicos (Folio, Rifa, Precio)
-        document.getElementById('resFolio').innerText = "Folio: " + (data.boleto.folio || '---');
-        document.getElementById('resRifa').innerText = data.boleto.rifa_nombre || 'Sorteo Activo';
-        document.getElementById('resPrecio').innerText = "$" + data.boleto.precio;
-        
-        const estado = document.getElementById('resEstado');
-        estado.innerText = data.boleto.estado.toUpperCase();
-        
-        // Color inicial del estado
-        estado.className = "font-bold px-2 py-0.5 rounded-md " + 
-            (data.boleto.estado.toLowerCase() === 'disponible' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700');
-    }
-
-    function revelarEstatus() {
-        const areaValidar = document.getElementById('areaValidar');
-        const areaGanador = document.getElementById('areaGanador');
-        const banner = document.getElementById('bannerGanador');
-        const iconDiv = document.getElementById('iconGanador');
-        const msg = document.getElementById('msgGanador');
-        const subMsg = document.getElementById('subMsgGanador');
-        const btnEntregar = document.getElementById('btnEntregar');
-        const estadoLabel = document.getElementById('resEstado');
-
+        // Limpiamos estados visuales previos
         areaValidar.classList.add('hidden');
-        areaGanador.classList.remove('hidden');
+        areaGanador.classList.add('hidden');
 
-        // Actualizamos el estado a VENDIDO (ya que el controlador lo procesó)
-        estadoLabel.innerText = "VENDIDO";
-        estadoLabel.className = "font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-700";
+        // Info básica siempre visible
+        document.getElementById('resFolio').innerText = "Folio: " + data.boleto.folio;
+        document.getElementById('resRifa').innerText = data.boleto.rifa_nombre;
 
-        // Lógica de Revelación
-        if (scanData.boleto.es_ganador == 1 || scanData.boleto.es_ganador === true) {
-            banner.className = "p-4 rounded-xl flex items-center gap-3 mb-4 bg-amber-50 border-2 border-amber-200 animate-bounce";
-            iconDiv.className = "p-2 rounded-full bg-amber-100 text-amber-600";
-            iconDiv.innerHTML = '<i class="ri-trophy-fill text-2xl"></i>';
-            
-            msg.innerText = "¡ESTE BOLETO TIENE PREMIO!";
-            msg.className = "font-black text-sm uppercase text-amber-700 leading-none";
-            
-            subMsg.innerText = "Premio: $" + scanData.boleto.premio;
-            subMsg.className = "text-xs text-amber-600 font-bold mt-1";
-
-            // Botón para entregar premio si el admin o vendedor tienen permiso
-            btnEntregar.classList.remove('hidden');
-            btnEntregar.onclick = () => procesarAccion('entregar');
-        } else {
-            banner.className = "p-4 rounded-xl flex items-center gap-3 mb-4 bg-slate-50 border border-slate-200";
-            iconDiv.className = "p-2 rounded-full bg-slate-200 text-slate-500";
-            iconDiv.innerHTML = '<i class="ri-emotion-sad-line text-2xl"></i>';
-            
-            msg.innerText = "Boleto No Premiado";
-            msg.className = "font-black text-sm uppercase text-slate-600 leading-none";
-            
-            subMsg.innerText = "Gracias por participar.";
-            subMsg.className = "text-xs text-slate-400 mt-1";
-            btnEntregar.classList.add('hidden');
+        // --- LÓGICA DE SEGURIDAD POR ESTADO ---
+        if (data.status_type === 'utilizado') {
+            mostrarBannerSeguridad('BOLETO YA VENDIDO', 'Vendido anteriormente.', 'orange', 'ri-history-line');
+        } 
+        else if (data.status_type === 'invalido') {
+            mostrarBannerSeguridad('BOLETO INVÁLIDO', 'Este código ha sido anulado.', 'red', 'ri-close-circle-line');
+        } 
+        else {
+            // Caso Disponible: Mostrar botón para validar y vender
+            areaValidar.classList.remove('hidden');
+            document.getElementById('resPrecio').innerText = "$" + data.boleto.precio;
+            const estado = document.getElementById('resEstado');
+            estado.innerText = "DISPONIBLE";
+            estado.className = "font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700";
         }
     }
 
-    function procesarAccion(accion) {
-        fetch(rutaValidar, {
+    // Paso 2: Ejecuta la venta y revela el premio al hacer clic
+    async function revelarEstatus() {
+        const btn = document.querySelector('#areaValidar button');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> PROCESANDO...';
+
+        const response = await fetch(rutaValidar, {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json", 
                 "X-CSRF-TOKEN": "{{ csrf_token() }}" 
             },
-            body: JSON.stringify({ codigo_qr: currentCode, accion: accion })
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert(data.mensaje || "Operación realizada");
+            body: JSON.stringify({ 
+                codigo_qr: currentCode, 
+                confirmar_venta: true // Dispara el cambio a "Vendido" en el controlador
+            })
+        });
+        
+        const data = await response.json();
+        
+        if(data.success && data.status_type === 'revelacion') {
+            scanData = data; // Actualizamos con los datos del premio
+            mostrarResultadoFinal(data.boleto);
+        } else {
+            alert(data.message || "Error al validar el premio.");
             resetScanner();
-        })
-        .catch(err => alert("Error al procesar la acción."));
+        }
     }
 
-    function mostrarError(txt) {
-        document.getElementById('beep-error').play();
-        alert(txt);
-        resetScanner();
+    function mostrarResultadoFinal(boleto) {
+        document.getElementById('areaValidar').classList.add('hidden');
+        const areaGanador = document.getElementById('areaGanador');
+        const banner = document.getElementById('bannerGanador');
+        const iconDiv = document.getElementById('iconGanador');
+        const msg = document.getElementById('msgGanador');
+        const subMsg = document.getElementById('subMsgGanador');
+
+        areaGanador.classList.remove('hidden');
+        
+        // Actualizar estado a VENDIDO visualmente
+        const estadoLabel = document.getElementById('resEstado');
+        estadoLabel.innerText = "VENDIDO";
+        estadoLabel.className = "font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-700";
+
+        // Lógica de Ganador / No Ganador
+        if (boleto.es_ganador) {
+            banner.className = "p-4 rounded-xl flex items-center gap-3 mb-4 bg-amber-50 border-2 border-amber-200 animate-bounce";
+            iconDiv.className = "p-2 rounded-full bg-amber-100 text-amber-600";
+            iconDiv.innerHTML = '<i class="ri-trophy-fill text-2xl"></i>';
+            msg.innerText = "¡GANADOR!";
+            msg.className = "font-black text-sm uppercase text-amber-700";
+            subMsg.innerText = "Premio: $" + boleto.premio;
+            document.getElementById('btnEntregar').classList.remove('hidden');
+        } else {
+            banner.className = "p-4 rounded-xl flex items-center gap-3 mb-4 bg-slate-50 border border-slate-200";
+            iconDiv.className = "p-2 rounded-full bg-slate-200 text-slate-500";
+            iconDiv.innerHTML = '<i class="ri-emotion-normal-line text-2xl"></i>';
+            msg.innerText = "Sin Premio";
+            msg.className = "font-black text-sm uppercase text-slate-600";
+            subMsg.innerText = "Sigue participando.";
+            document.getElementById('btnEntregar').classList.add('hidden');
+        }
+    }
+
+    function mostrarBannerSeguridad(titulo, sub, color, icono) {
+        const areaGanador = document.getElementById('areaGanador');
+        const banner = document.getElementById('bannerGanador');
+        const iconDiv = document.getElementById('iconGanador');
+        const msg = document.getElementById('msgGanador');
+        const subMsg = document.getElementById('subMsgGanador');
+
+        areaGanador.classList.remove('hidden');
+        banner.className = `p-4 rounded-xl flex items-center gap-3 mb-4 bg-${color}-50 border border-${color}-200`;
+        iconDiv.className = `p-2 rounded-full bg-${color}-100 text-${color}-600`;
+        iconDiv.innerHTML = `<i class="${icono} text-2xl"></i>`;
+        msg.innerText = titulo;
+        msg.className = `font-black text-sm uppercase text-${color}-700`;
+        subMsg.innerText = sub;
+        
+        document.getElementById('btnEntregar').classList.add('hidden');
+        document.getElementById('btnVender').classList.add('hidden');
     }
 
     function resetScanner() {
         document.getElementById('resultado').classList.add('hidden');
         document.getElementById('retry-area').classList.add('hidden');
         document.getElementById('reader').style.opacity = "1";
+        const btnValidar = document.querySelector('#areaValidar button');
+        if(btnValidar) {
+            btnValidar.disabled = false;
+            btnValidar.innerHTML = '<i class="ri-shield-check-line text-xl"></i> VALIDAR PREMIO';
+        }
         isScanning = true;
         scanData = null;
         currentCode = null;
     }
 
     function startCamera() {
-        const config = { 
-            fps: 15, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        };
-
+        const config = { fps: 15, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
         html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-        .catch(err => {
-            console.error("Error cámara trasera, intentando frontal:", err);
-            html5QrCode.start({ facingMode: "user" }, config, onScanSuccess);
-        });
+        .catch(err => html5QrCode.start({ facingMode: "user" }, config, onScanSuccess));
     }
 
     document.addEventListener("DOMContentLoaded", startCamera);

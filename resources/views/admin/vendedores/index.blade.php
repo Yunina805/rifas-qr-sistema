@@ -121,104 +121,116 @@
             </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-            @forelse($vendedores as $vendedor)
-            <tr class="group hover:bg-slate-50 transition-colors">
-                {{-- Vendedor Info --}}
-                <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
-                            {{ substr($vendedor->name, 0, 2) }}
-                        </div>
-                        <div>
-                            <p class="font-bold text-slate-800">{{ $vendedor->name }}</p>
-                            <p class="text-[10px] text-slate-400 uppercase tracking-tighter">{{ $vendedor->alias ?? 'Vendedor Externo' }}</p>
-                        </div>
-                    </div>
-                </td>
+    @forelse($vendedores as $vendedor)
+    @php
+        // Generamos el mapa de estadísticas por rifa para este vendedor en específico
+        $statsPorRifa = $vendedor->boletos->groupBy('rifa_id')->map(function($boletos) {
+            return [
+                'asignados' => $boletos->count(),
+                'vendidos' => $boletos->where('estado', 'vendido')->count(),
+                'pendientes' => $boletos->where('estado', 'disponible')->count(),
+            ];
+        });
 
-                {{-- Rifas Asignadas con Conteo Individual --}}
-                <td class="px-6 py-4">
-                    <div class="flex flex-col gap-1.5 max-w-[220px]">
-                        @php
-                            // Agrupamos los boletos por el nombre de la rifa
-                            $rifasAgrupadas = $vendedor->boletos->groupBy(function($boleto) {
-                                return $boleto->rifa->nombre ?? 'Rifa sin nombre';
-                            });
-                        @endphp
-                        
-                        @forelse($rifasAgrupadas as $nombreRifa => $boletos)
-                            <div class="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-md px-2 py-1">
-                                <span class="text-[10px] font-bold text-indigo-700 truncate mr-2">{{ $nombreRifa }}</span>
-                                <span class="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black shadow-sm">
-                                    {{ $boletos->count() }}
-                                </span>
-                            </div>
-                        @empty
-                            <span class="text-xs text-slate-400 italic">Sin boletos asignados</span>
-                        @endforelse
-                    </div>
-                </td>
+        // Agregamos la opción "General" al mapa
+        $statsPorRifa['general'] = [
+            'asignados' => $vendedor->total_asignados,
+            'vendidos' => $vendedor->total_vendidos,
+            'pendientes' => $vendedor->total_pendientes,
+        ];
+    @endphp
 
-                {{-- Métricas de Inventario (Desglose solicitado) --}}
-                <td class="px-6 py-4">
-                    <div class="flex items-center justify-center gap-3 text-center">
-                        {{-- Totales --}}
-                        <div class="px-3 py-1 bg-slate-50 rounded-lg border border-slate-100">
-                            <span class="block text-xs font-black text-slate-700">{{ number_format($vendedor->total_asignados) }}</span>
-                            <span class="text-[9px] text-slate-400 uppercase font-bold">Asignados</span>
-                        </div>
-                        {{-- Vendidos --}}
-                        <div class="px-3 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
-                            <span class="block text-xs font-black text-emerald-700">{{ number_format($vendedor->total_vendidos) }}</span>
-                            <span class="text-[9px] text-emerald-500 uppercase font-bold">Vendidos</span>
-                        </div>
-                        {{-- Por Vender (Pendientes) --}}
-                        <div class="px-3 py-1 bg-amber-50 rounded-lg border border-amber-100">
-                            <span class="block text-xs font-black text-amber-700">{{ number_format($vendedor->total_pendientes) }}</span>
-                            <span class="text-[9px] text-amber-500 uppercase font-bold">Por Vender</span>
-                        </div>
-                    </div>
-                </td>
+    <tr class="group hover:bg-slate-50 transition-colors" 
+        x-data="{ 
+            selected: 'general',
+            stats: {{ json_encode($statsPorRifa) }},
+            get current() { return this.stats[this.selected] }
+        }">
+        
+        {{-- Vendedor Info --}}
+        <td class="px-6 py-4">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+                    {{ substr($vendedor->name, 0, 2) }}
+                </div>
+                <div>
+                    <p class="font-bold text-slate-800">{{ $vendedor->name }}</p>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-tighter">{{ $vendedor->alias ?? 'Vendedor Externo' }}</p>
+                </div>
+            </div>
+        </td>
 
-                {{-- Rendimiento --}}
-                <td class="px-6 py-4">
-                    @php
-                        $avance = $vendedor->total_asignados > 0 ? ($vendedor->total_vendidos / $vendedor->total_asignados) * 100 : 0;
-                    @endphp
-                    <div class="w-32">
-                        <div class="flex justify-between text-[10px] mb-1">
-                            <span class="font-bold text-slate-600">{{ number_format($avance, 0) }}%</span>
-                            <span class="text-slate-400 italic">Conversión</span>
-                        </div>
-                        <div class="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-slate-900 rounded-full" style="width: {{ $avance }}%"></div>
-                        </div>
-                    </div>
-                </td>
+        {{-- Selector de Rifas Activas --}}
+        <td class="px-6 py-4">
+            <div class="max-w-[200px]">
+                <select x-model="selected" 
+                        class="w-full pl-2 pr-8 py-1.5 bg-white border border-slate-200 rounded-md text-[11px] font-bold text-indigo-700 focus:outline-none focus:border-indigo-400 cursor-pointer shadow-sm">
+                    <option value="general">📊 Resumen General</option>
+                    @foreach($vendedor->boletos->pluck('rifa')->unique('id') as $rifa)
+                        <option value="{{ $rifa->id }}">🎫 {{ $rifa->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </td>
 
-                {{-- Acciones --}}
-                <td class="px-6 py-4 text-right">
-                    <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick='editarVendedor(@json($vendedor))' class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-slate-100">
-                            <i class="ri-pencil-line"></i>
-                        </button>
-                        <form action="{{ route('admin.vendedores.destroy', $vendedor->id) }}" method="POST" onsubmit="return confirm('¿Eliminar vendedor?');" class="inline">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="p-2 text-slate-400 hover:text-red-600 hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-slate-100">
-                                <i class="ri-delete-bin-line"></i>
-                            </button>
-                        </form>
-                    </div>
-                </td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="5" class="px-6 py-20 text-center text-slate-400 italic bg-slate-50/50">
-                    No hay vendedores registrados en el sistema.
-                </td>
-            </tr>
-            @endforelse
-        </tbody>
+        {{-- Métricas de Inventario REACTIVAS --}}
+        <td class="px-6 py-4">
+            <div class="flex items-center justify-center gap-3 text-center">
+                {{-- Totales --}}
+                <div class="px-3 py-1 bg-slate-50 rounded-lg border border-slate-100 min-w-[75px]">
+                    <span class="block text-xs font-black text-slate-700" x-text="current.asignados.toLocaleString()"></span>
+                    <span class="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Asignados</span>
+                </div>
+                {{-- Vendidos --}}
+                <div class="px-3 py-1 bg-emerald-50 rounded-lg border border-emerald-100 min-w-[75px]">
+                    <span class="block text-xs font-black text-emerald-700" x-text="current.vendidos.toLocaleString()"></span>
+                    <span class="text-[9px] text-emerald-500 uppercase font-bold tracking-tighter">Vendidos</span>
+                </div>
+                {{-- Por Vender --}}
+                <div class="px-3 py-1 bg-amber-50 rounded-lg border border-amber-100 min-w-[75px]">
+                    <span class="block text-xs font-black text-amber-700" x-text="current.pendientes.toLocaleString()"></span>
+                    <span class="text-[9px] text-amber-500 uppercase font-bold tracking-tighter">Por Vender</span>
+                </div>
+            </div>
+        </td>
+
+        {{-- Eficacia REACTIVA --}}
+        <td class="px-6 py-4">
+            <div class="w-32">
+                <div class="flex justify-between text-[10px] mb-1">
+                    <span class="font-bold text-slate-600" x-text="Math.round((current.vendidos / (current.asignados || 1)) * 100) + '%'"></span>
+                    <span class="text-slate-400 italic">Eficacia</span>
+                </div>
+                <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-slate-900 rounded-full transition-all duration-500" 
+                         :style="'width: ' + ((current.vendidos / (current.asignados || 1)) * 100) + '%'"></div>
+                </div>
+            </div>
+        </td>
+
+        {{-- Acciones --}}
+        <td class="px-6 py-4 text-right">
+            <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onclick='editarVendedor(@json($vendedor))' class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-slate-100">
+                    <i class="ri-pencil-line"></i>
+                </button>
+                <form action="{{ route('admin.vendedores.destroy', $vendedor->id) }}" method="POST" onsubmit="return confirm('¿Eliminar vendedor?');" class="inline">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="p-2 text-slate-400 hover:text-red-600 hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-slate-100">
+                        <i class="ri-delete-bin-line"></i>
+                    </button>
+                </form>
+            </div>
+        </td>
+    </tr>
+    @empty
+    <tr>
+        <td colspan="5" class="px-6 py-20 text-center text-slate-400 italic bg-slate-50/50">
+            No hay vendedores registrados en el sistema.
+        </td>
+    </tr>
+    @endforelse
+</tbody>
     </table>
 </div>
     </div>

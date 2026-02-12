@@ -2,214 +2,149 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Boletos - {{ $rifa->nombre }}</title>
+    <title>Boleto - {{ $rifa->nombre }}</title>
     <style>
-        /* --- CONFIGURACIÓN DE PÁGINA --- */
+        /* --- CONFIGURACIÓN GENERAL --- */
         @page {
-            margin: 0.5cm;
+            margin: 1cm; /* Margen estándar para imprimir */
             size: letter;
         }
         body {
-            font-family: 'Helvetica', 'Arial', sans-serif;
-            color: #333;
+            font-family: 'Arial', sans-serif; /* Fuente estándar y legible */
+            font-size: 12px;
+            color: #000;
             margin: 0;
             padding: 0;
-            background-color: #fff;
         }
 
-        /* --- CONTENEDOR PRINCIPAL DEL BOLETO --- */
-        .ticket-wrapper {
+        /* --- CONTENEDOR DEL BOLETO --- */
+        .ticket-container {
             width: 100%;
-            height: 230px; /* Un poco más alto para que respire el diseño */
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 12px; /* Bordes redondeados modernos */
-            overflow: hidden;
+            height: 160px; /* Altura más compacta (antes era 230px) */
+            border: 2px solid #000; /* Borde negro sólido y grueso */
+            margin-bottom: 10px; /* Espacio entre boletos */
             position: relative;
-            background-color: #fff;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Sombra sutil para vista web */
         }
 
-        /* --- ESTRUCTURA DE TABLA (Crucial para PDF) --- */
+        /* --- TABLA DE ESTRUCTURA (Talón vs Cuerpo) --- */
         table.layout {
             width: 100%;
             height: 100%;
             border-collapse: collapse;
         }
-        td.section {
+        td {
             vertical-align: top;
-            padding: 0;
+            padding: 5px;
         }
 
-        /* --- SECCIÓN IZQUIERDA: TALÓN (CONTROL) --- */
-        .stub {
-            width: 25%;
-            background-color: #f4f4f4;
-            border-right: 2px dashed #bbb; /* Línea de corte clásica */
-            position: relative;
-            padding: 15px !important;
-            box-sizing: border-box;
-        }
-        .stub-header {
-            text-transform: uppercase;
-            font-size: 10px;
-            color: #777;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
+        /* --- TALÓN (IZQUIERDA) --- */
+        td.stub {
+            width: 22%; /* Un poco más angosto */
+            border-right: 1px dashed #000; /* Línea de corte simple */
+            text-align: center;
+            background-color: #fff; /* Sin fondo gris */
         }
         .stub-folio {
-            font-size: 16px;
-            font-weight: 900;
-            color: #d32f2f;
-            background: #fff;
-            display: inline-block;
-            padding: 2px 8px;
-            border: 1px solid #d32f2f;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        .stub-form {
-            font-size: 9px;
-            color: #555;
-            line-height: 2.2; /* Espaciado para escribir a mano */
-        }
-        .cut-icon {
-            position: absolute;
-            right: -9px;
-            top: 50%;
             font-size: 14px;
-            background: #fff;
-            color: #999;
-            height: 20px;
-            line-height: 20px;
-        }
-
-        /* --- SECCIÓN DERECHA: CUERPO DEL BOLETO --- */
-        .main-body {
-            width: 75%;
-            padding: 0 !important;
-            position: relative;
-        }
-
-        /* Header Azul Superior */
-        .ticket-header {
-            background-color: #0d1b2a; /* Azul muy oscuro moderno */
-            color: #fff;
-            padding: 10px 20px;
-            border-bottom: 3px solid #e63946; /* Acento rojo */
-        }
-        .header-title {
-            font-size: 16px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .header-sub {
-            font-size: 10px;
-            color: #ccc;
-            margin-top: 2px;
-        }
-
-        /* Contenido Principal */
-        .content-area {
-            padding: 15px 20px;
-            position: relative;
-        }
-
-        /* Precio Flotante Moderno */
-        .price-badge {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            background-color: #e63946;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 50px;
             font-weight: bold;
-            font-size: 18px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        /* Folio Gigante */
-        .main-folio-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: #777;
-            font-weight: bold;
-        }
-        .main-folio {
-            font-size: 38px;
-            font-weight: 900;
-            color: #1d3557; /* Azul corporativo */
-            letter-spacing: 2px;
-            margin-top: -5px;
-            font-family: 'Courier New', monospace; /* Fuente monoespaciada tipo impreso */
-        }
-
-        /* --- NUEVO DISEÑO: 5 NÚMEROS (OPORTUNIDADES) --- */
-        .lucky-numbers-container {
-            margin-top: 15px;
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 8px 12px;
-            display: inline-block;
-            width: 65%; /* Ocupa parte del ancho, deja espacio al QR */
-        }
-        .lucky-label {
-            font-size: 9px;
-            font-weight: bold;
-            color: #457b9d;
-            text-transform: uppercase;
+            color: #d30000; /* Rojo solo para el folio (común en imprenta) */
             margin-bottom: 5px;
             display: block;
         }
-        .numbers-row {
-            width: 100%;
+        .stub-data {
             text-align: left;
+            font-size: 9px;
+            line-height: 1.8;
+            margin-top: 10px;
         }
-        .num-badge {
-            display: inline-block;
-            background: #fff;
-            border: 1px solid #457b9d;
-            color: #1d3557;
+        .stub-label {
             font-weight: bold;
-            font-size: 12px;
-            padding: 4px 0;
-            width: 32px;
-            text-align: center;
-            border-radius: 4px;
-            margin-right: 4px;
-            font-family: 'Courier New', monospace;
         }
 
-        /* QR y Legales */
-        .qr-area {
-            position: absolute;
-            bottom: 10px;
-            right: 15px;
-            text-align: center;
+        /* --- CUERPO PRINCIPAL (DERECHA) --- */
+        td.body {
+            width: 78%;
+            padding: 5px 10px;
+            position: relative;
         }
-        .qr-box {
-            border: 1px solid #ddd;
-            padding: 4px;
-            background: #fff;
-            border-radius: 6px;
-            display: inline-block;
+
+        /* Encabezado */
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+        .rifa-name {
+            font-size: 18px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+        .rifa-info {
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        /* Sección de Números y Precio */
+        .content-row {
+            width: 100%;
+            margin-top: 5px;
         }
         
-        .legal-text {
-            position: absolute;
-            bottom: 10px;
-            left: 20px;
-            width: 60%;
-            font-size: 8px;
-            color: #999;
-            text-align: justify;
-            line-height: 1.2;
+        /* El precio grande y visible */
+        .price-box {
+            float: right;
+            border: 2px solid #000;
+            padding: 5px 10px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            background: #eee; /* Un gris muy leve para resaltar precio */
         }
 
+        /* Folio Principal */
+        .main-folio {
+            font-size: 22px;
+            font-weight: bold;
+            color: #d30000;
+            margin-bottom: 5px;
+        }
+
+        /* Lista de números (Estilo PDF antiguo) */
+        .numbers-list {
+            margin-top: 5px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace; /* Fuente tipo máquina de escribir */
+            font-weight: bold;
+        }
+        .numbers-title {
+            font-size: 10px;
+            font-weight: bold;
+            text-decoration: underline;
+            margin-bottom: 2px;
+        }
+
+        /* Textos legales abajo */
+        .legal-footer {
+            position: absolute;
+            bottom: 5px;
+            left: 10px;
+            right: 80px; /* Espacio para el QR */
+            font-size: 9px;
+            text-align: justify;
+        }
+
+        /* QR Simple */
+        .qr-area {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+        }
+
+        /* Utilidad para salto de página */
         .page-break { page-break-after: always; }
+        
+        .clear { clear: both; }
     </style>
 </head>
 <body>
@@ -217,70 +152,62 @@
     @foreach($boletos as $index => $boleto)
         
         @php
-            // --- LÓGICA PARA 5 NÚMEROS DE LA SUERTE ---
-            // Generamos 5 números únicos
+            // Mantenemos tu lógica de números, pero se mostrarán diferente
             $oportunidades = [];
             while(count($oportunidades) < 5) {
-                $n = str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT); // 3 dígitos
+                $n = str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT);
                 if(!in_array($n, $oportunidades)) $oportunidades[] = $n;
             }
-            sort($oportunidades); // Ordenados se ven mejor
+            sort($oportunidades);
         @endphp
 
-        <div class="ticket-wrapper">
+        <div class="ticket-container">
             <table class="layout">
                 <tr>
-                    <td class="section stub">
-                        <div class="stub-header">Talón de Control</div>
-                        <div class="stub-folio">{{ $boleto->folio }}</div>
+                    <td class="stub">
+                        <div style="font-size: 9px; font-weight: bold;">TALÓN</div>
+                        <span class="stub-folio">Nº {{ $boleto->folio }}</span>
                         
-                        <div class="stub-form">
-                            Nombre:<br>_______________________<br>
-                            Teléfono:<br>_______________________<br>
-                            Dirección:<br>_______________________
+                        <div class="stub-data">
+                            <span class="stub-label">Nombre:</span><br>
+                            __________________<br>
+                            <span class="stub-label">Tel:</span><br>
+                            __________________<br>
+                            <span class="stub-label">Colonia:</span><br>
+                            __________________
                         </div>
-                        <div class="cut-icon">✂</div>
                     </td>
 
-                    <td class="section main-body">
+                    <td class="body">
                         
-                        <div class="ticket-header">
-                            <div class="header-title">{{ $rifa->nombre }}</div>
-                            <div class="header-sub">📍 {{ $rifa->sede }} | 📅 Fecha: {{ date('d/m/Y') }}</div>
+                        <div class="header">
+                            <div class="rifa-name">{{ $rifa->nombre }}</div>
+                            <div class="rifa-info">
+                                📅 Sorteo: {{ date('d/m/Y') }} | 📍 {{ $rifa->sede }}
+                            </div>
                         </div>
 
-                        <div class="content-area">
-                            
-                            <div class="price-badge">
-                                ${{ number_format($rifa->precio_boleto, 0) }}
+                        <div class="price-box">
+                            ${{ number_format($rifa->precio_boleto, 0) }}
+                        </div>
+                        
+                        <div class="main-folio">Folio: {{ $boleto->folio }}</div>
+
+                        <div style="margin-top: 10px;">
+                            <div class="numbers-title">SUS NÚMEROS:</div>
+                            <div class="numbers-list">
+                                {{ implode(' - ', $oportunidades) }}
                             </div>
-
-                            <div class="main-folio-label"># de Folio</div>
-                            <div class="main-folio">Nº {{ $boleto->folio }}</div>
-
-                            <div class="lucky-numbers-container">
-                                <span class="lucky-label">✨ Tus 5 Oportunidades Adicionales:</span>
-                                <div class="numbers-row">
-                                    @foreach($oportunidades as $op)
-                                        <span class="num-badge">{{ $op }}</span>
-                                    @endforeach
-                                </div>
-                            </div>
-
                         </div>
 
-                        <div class="legal-text">
-                            <strong>CONDICIONES:</strong> Este boleto participa bajo las normas establecidas. 
-                            Conserve este talón original para reclamar su premio. 
-                            Caducidad: 30 días posteriores al sorteo.
-                            <br><span style="color: #bbb;">ID Único: {{ substr($boleto->codigo_qr, 0, 12) }}</span>
+                        <div class="legal-footer">
+                            <strong>NOTA:</strong> La boleta se anulará si se encuentra rota, con tachones o enmendaduras.
+                            Caducidad: 2 DÍAS después del sorteo. Se pagará al portador.
+                            <br>Tel: 9541566004
                         </div>
 
                         <div class="qr-area">
-                            <div class="qr-box">
-                                <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(70)->generate(route('boleto.verificar', $boleto->codigo_qr))) }}" width="70" height="70">
-                            </div>
-                            <div style="font-size: 8px; font-weight: bold; color: #0d1b2a; margin-top: 2px;">Verificar</div>
+                            <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(55)->generate($boleto->codigo_qr)) }}">
                         </div>
 
                     </td>
@@ -288,7 +215,7 @@
             </table>
         </div>
 
-        @if(($index + 1) % 4 == 0)
+        @if(($index + 1) % 5 == 0)
             <div class="page-break"></div>
         @endif
 
