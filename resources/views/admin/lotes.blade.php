@@ -239,15 +239,15 @@
                                 <i class="ri-qr-code-line text-lg"></i>
                             </button>
                         </td>
-{{-- Acciones --}}
-<td class="px-6 py-3 text-right">
-    {{-- Usamos onclick para inyectar el color dinámicamente --}}
-    <button onclick="imprimirIndividual('{{ route('admin.boletos.imprimir', $boleto->id) }}')" 
-            class="inline-flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors text-xs font-bold uppercase tracking-wider group cursor-pointer">
-        <i class="ri-printer-line text-sm transition-transform group-hover:scale-110"></i>
-        <span>Imprimir</span>
-    </button>
-</td>
+                    {{-- Acciones --}}
+                    <td class="px-6 py-3 text-right">
+                        {{-- Usamos onclick para inyectar el color dinámicamente --}}
+                        <button onclick="imprimirIndividual('{{ route('admin.boletos.imprimir', $boleto->id) }}')" 
+                                class="inline-flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors text-xs font-bold uppercase tracking-wider group cursor-pointer">
+                            <i class="ri-printer-line text-sm transition-transform group-hover:scale-110"></i>
+                            <span>Imprimir</span>
+                        </button>
+                    </td>
                     </tr>
                     @empty
                     <tr>
@@ -320,7 +320,7 @@
 
                 {{-- Footer --}}
                 <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex justify-center">
-                    <button onclick="cerrarQrModal()" class="text-xs font-medium text-slate-500 hover:text-slate-800">Cerrar ventana</button>
+                    <button onclick="cerrarQrModal()" class="text-xs font-medium text-slate-500 hover:text-slate-800">Cerrar</button>
                 </div>
             </div>
         </div>
