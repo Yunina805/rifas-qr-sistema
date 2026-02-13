@@ -31,26 +31,42 @@ class LoteController extends Controller
         return view('admin.lotes', compact('rifa', 'boletos'));
     }
 
-    // Imprimir todo el lote de la rifa
-    public function imprimir(Rifa $rifa)
+    public function imprimir(Request $request, Rifa $rifa)
     {
+        // Aumentamos el tiempo por si son muchos boletos
         set_time_limit(300); 
+
+        // 1. CAPTURAR EL COLOR
+        // Si la URL trae ?color=e9c6fc, le ponemos el # -> #e9c6fc
+        // Si no trae nada, usamos tu verde (#d7ffc1) por defecto.
+        $color = $request->has('color') ? '#' . $request->color : '#d7ffc1';
+
         $boletos = $rifa->boletos()->get();
-        $pdf = PDFFacade::loadView('admin.pdf.boletos', compact('rifa', 'boletos'));
+
+        // 2. PASAR EL COLOR A LA VISTA
+        // Agregamos 'color' al compact
+        $pdf = PDFFacade::loadView('admin.pdf.boletos', compact('rifa', 'boletos', 'color'));
+
         return $pdf->stream("lote-{$rifa->nombre}.pdf");
     }
 
-    // NUEVA FUNCIÓN: Imprimir solo un boleto específico
-    public function imprimirIndividual(Boleto $boleto)
-    {
-        // Cargamos la relación de la rifa para mostrar el nombre y fecha en el PDF
-        $boleto->load('rifa');
+// 
+public function imprimirIndividual(Request $request, Boleto $boleto)
+{
+    // 1. CAPTURAR EL COLOR
+    $color = $request->has('color') ? '#' . $request->color : '#d7ffc1';
 
-        // Generamos el PDF. Te sugiero crear una vista 'boleto_individual.blade.php' 
-        // optimizada para una sola hoja o formato pequeño.
-        $pdf = PDFFacade::loadView('admin.pdf.boleto_individual', compact('boleto'));
-        
-        // Retornamos el stream para que se abra en el navegador con un nombre de archivo claro
-        return $pdf->stream("boleto-{$boleto->folio}.pdf");
-    }
+    // Cargamos los datos de la rifa
+    $boleto->load('rifa');
+
+    // 2. EL TRUCO MAESTRO:
+    // Convertimos el boleto único en una Colección (una lista de 1)
+    // Así la variable $boletos existirá en la vista
+    $boletos = collect([$boleto]);
+
+    // 3. PASAMOS 'boletos' (PLURAL) A LA VISTA
+    $pdf = PDFFacade::loadView('admin.pdf.boleto_individual', compact('boletos', 'color'));
+    
+    return $pdf->stream("boleto-{$boleto->folio}.pdf");
+}
 }

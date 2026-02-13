@@ -21,19 +21,57 @@
                 </span>
             </h1>
         </div>
+{{-- PASO 1: VISTA DE LOTES (Botonera con Selector de Color) --}}
+
+<div class="flex items-center gap-4" x-data="{ colorSeleccionado: '#d7ffc1' }">
+    
+    {{-- 1. Selector de Colores (Círculos) --}}
+    <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-400 uppercase mr-1">Color:</span>
         
-        <div class="flex gap-2">
-            <a href="{{ route('admin.rifas.imprimir', $rifa) }}" target="_blank" 
-               class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm">
-                <i class="ri-printer-line"></i>
-                <span class="hidden sm:inline">Imprimir Listado</span>
-            </a>
-            <a href="{{ route('admin.rifas') }}" 
-               class="inline-flex items-center gap-2 px-3 py-2 bg-slate-900 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-slate-800 transition-all shadow-sm">
-                <i class="ri-arrow-left-line"></i>
-                <span>Volver</span>
-            </a>
-        </div>
+        {{-- Verde --}}
+        <button @click="colorSeleccionado = '#d7ffc1'" 
+                :class="colorSeleccionado === '#d7ffc1' ? 'ring-2 ring-slate-400 ring-offset-1' : ''"
+                class="w-5 h-5 rounded-full border border-black/10 transition-transform hover:scale-110 shadow-sm" 
+                style="background-color: #d7ffc1;"></button>
+        
+        {{-- Morado --}}
+        <button @click="colorSeleccionado = '#e9c6fc'" 
+                :class="colorSeleccionado === '#e9c6fc' ? 'ring-2 ring-slate-400 ring-offset-1' : ''"
+                class="w-5 h-5 rounded-full border border-black/10 transition-transform hover:scale-110 shadow-sm" 
+                style="background-color: #e9c6fc;"></button>
+        
+        {{-- Azul --}}
+        <button @click="colorSeleccionado = '#d3effb'" 
+                :class="colorSeleccionado === '#d3effb' ? 'ring-2 ring-slate-400 ring-offset-1' : ''"
+                class="w-5 h-5 rounded-full border border-black/10 transition-transform hover:scale-110 shadow-sm" 
+                style="background-color: #d3effb;"></button>
+
+        {{-- EXTRA: Amarillo Pastel --}}
+        <button @click="colorSeleccionado = '#fff5ba'" 
+                :class="colorSeleccionado === '#fff5ba' ? 'ring-2 ring-slate-400 ring-offset-1' : ''"
+                class="w-5 h-5 rounded-full border border-black/10 transition-transform hover:scale-110 shadow-sm" 
+                style="background-color: #fff5ba;"></button>
+    </div>
+
+    {{-- 2. Botones de Acción --}}
+    <div class="flex gap-2">
+        {{-- Botón IMPRIMIR (Modificado para usar JS) --}}
+        <button @click="window.open('{{ route('admin.rifas.imprimir', $rifa) }}?color=' + colorSeleccionado.replace('#', ''), '_blank')" 
+           class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm cursor-pointer">
+            <i class="ri-printer-line"></i>
+            <span class="hidden sm:inline">Imprimir Listado</span>
+        </button>
+
+        {{-- Botón VOLVER (Intacto) --}}
+        <a href="{{ route('admin.rifas') }}" 
+           class="inline-flex items-center gap-2 px-3 py-2 bg-slate-900 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-slate-800 transition-all shadow-sm">
+            <i class="ri-arrow-left-line"></i>
+            <span>Volver</span>
+        </a>
+    </div>
+
+</div>
     </div>
 
     {{-- KPI CARDS (Minimalistas) --}}
@@ -201,16 +239,15 @@
                                 <i class="ri-qr-code-line text-lg"></i>
                             </button>
                         </td>
-
-                        {{-- Acciones --}}
-                        <td class="px-6 py-3 text-right">
-                            <a href="{{ route('admin.boletos.imprimir', $boleto->id) }}" 
-                            target="_blank"
-                            class="inline-flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors text-xs font-bold uppercase tracking-wider group">
-                                <i class="ri-printer-line text-sm transition-transform group-hover:scale-110"></i>
-                                <span>Imprimir</span>
-                            </a>
-                        </td>
+{{-- Acciones --}}
+<td class="px-6 py-3 text-right">
+    {{-- Usamos onclick para inyectar el color dinámicamente --}}
+    <button onclick="imprimirIndividual('{{ route('admin.boletos.imprimir', $boleto->id) }}')" 
+            class="inline-flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors text-xs font-bold uppercase tracking-wider group cursor-pointer">
+        <i class="ri-printer-line text-sm transition-transform group-hover:scale-110"></i>
+        <span>Imprimir</span>
+    </button>
+</td>
                     </tr>
                     @empty
                     <tr>
@@ -291,6 +328,18 @@
 </div>
 
 <script>
+
+// --- NUEVA FUNCIÓN PARA BOLETO INDIVIDUAL ---
+    function imprimirIndividual(urlBase) {
+        // 1. Buscamos qué color está seleccionado arriba
+        // (Si no encuentra el input, usa el verde por defecto)
+        let inputColor = document.getElementById('colorGlobal');
+        let color = inputColor ? inputColor.value.replace('#', '') : 'd7ffc1';
+
+        // 2. Abrimos la URL agregando el ?color=...
+        window.open(urlBase + '?color=' + color, '_blank');
+    }
+
     function verQRGrande(folio, codigoQr, esGanador) {
         const modal = document.getElementById('qrModal');
         const backdrop = document.getElementById('qrModalBackdrop');

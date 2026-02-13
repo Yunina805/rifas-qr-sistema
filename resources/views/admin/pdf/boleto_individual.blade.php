@@ -2,211 +2,204 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Boleto Digital - {{ $boleto->rifa->nombre }}</title>
+    <title>Boletos Estructurados 3x3 - Dinámico</title>
     <style>
-        /* --- RESET Y BASES --- */
-        @page { margin: 0.5cm; size: letter; }
+        /* --- CONFIGURACIÓN DE PÁGINA --- */
+        @page { margin: 0; size: letter; }
         body {
-            font-family: 'Helvetica', 'Arial', sans-serif;
-            background-color: #fff;
             margin: 0; padding: 0;
+            font-family: 'Helvetica', Arial, sans-serif; 
+            background-color: #ffffff;
         }
 
-        /* --- TICKET CONTENEDOR --- */
-        .ticket {
-            width: 100%;
-            max-width: 700px; /* Un poco más ancho para que respire */
-            border: 2px solid #ef6c00; /* Borde Naranja */
-            border-radius: 12px;
-            margin-bottom: 20px;
-            overflow: hidden; /* Mantiene todo dentro de las curvas */
+        .page-container {
             position: relative;
-            background-color: #fff;
+            width: 21.59cm; height: 27.94cm;
+            page-break-after: always;
         }
 
-        /* --- HEADER (TÍTULO) --- */
-        .header {
-            background-color: #ef6c00;
-            color: white;
-            padding: 15px 20px;
-            border-bottom: 5px solid #0d47a1; /* Contraste Azul */
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .header-meta {
-            margin-top: 5px;
-            font-size: 11px;
-            opacity: 0.9;
+        /* --- CUADRÍCULA 3x3 --- */
+        .ticket-box {
+            position: absolute;
+            width: 33.33%; height: 33.33%;
+            box-sizing: border-box;
+            border: 1px dotted #e0e0e0; 
+            text-align: center;
         }
 
-        /* --- CUERPO (TABLA MAESTRA) --- */
-        .layout-table {
+        /* --- EL BOLETO --- */
+        .inner {
+            width: 240px; 
+            height: 240px;
+            margin-top: 15px; 
+            display: inline-block;
+            border-radius: 18px;
+            
+            /* AQUÍ ESTÁ EL CAMBIO: Fondo dinámico */
+            background-color: {{ $color }}; 
+            
+            border: 4px solid #ffffff;
+            
+            /* CAMBIO DE CONTRASTE: Texto oscuro para fondos claros */
+            color: #1a2a6c; 
+            
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* --- CABECERA DINÁMICA --- */
+        .header-table {
             width: 100%;
+            padding: 10px 12px;
             border-collapse: collapse;
         }
-        .col-left {
-            width: 68%;
-            padding: 20px;
+        .brand-cell {
+            text-align: left;
             vertical-align: top;
         }
-        .col-right {
-            width: 32%;
-            background-color: #f4f6f8; /* Gris muy tenue para separar visualmente */
-            border-left: 2px dashed #ccc;
-            text-align: center;
-            vertical-align: middle;
-            position: relative;
-            padding: 10px;
+        .rifa-name {
+            display: block;
+            font-size: 10px; font-weight: 900; 
+            text-transform: uppercase; letter-spacing: 0.5px;
+            
+            /* CAMBIO: Azul oscuro en lugar de dorado para que resalte */
+            color: #1a2a6c; 
+            
+            max-width: 130px; 
         }
-
-        /* --- SECCIONES DE DATOS (IZQUIERDA) --- */
+        .rifa-sede {
+            display: block;
+            font-size: 7px;
+            
+            /* CAMBIO: Texto oscuro */
+            color: #1a2a6c; 
+            
+            opacity: 0.8;
+            margin-top: 2px;
+            font-weight: bold; /* Agregado negrita para legibilidad */
+        }
         
-        /* 1. Folio Principal */
-        .section-folio {
-            margin-bottom: 20px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 15px;
-        }
-        .label {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: #7f8c8d;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 2px;
-        }
-        .folio-number {
-            font-size: 42px; /* Más grande e impactante */
-            color: #0d47a1;
-            font-weight: 900;
-            line-height: 1;
-            letter-spacing: 2px;
+        .folio-cell { text-align: right; vertical-align: top; }
+        .folio-label { display: block; font-size: 6px; opacity: 0.7; text-transform: uppercase; font-weight: bold; }
+        .folio-num { 
+            font-size: 14px; font-weight: 900; color: #ffffff;
+            
+            /* CAMBIO: Fondo del folio en Azul Oscuro para combinar con todo */
+            background: #1a2a6c; 
+            
+            padding: 2px 5px; border-radius: 4px;
         }
 
-        /* 2. Oportunidades Extra */
-        .section-lucky {
-            margin-bottom: 15px;
-        }
-        .lucky-grid {
-            margin-top: 5px;
-        }
-        .lucky-badge {
+        /* --- CONTENIDO CENTRAL --- */
+        .main-content { text-align: center; padding-top: 2px; }
+        
+        .qr-container {
+            background: white;
+            padding: 5px;
+            border-radius: 10px;
             display: inline-block;
-            background-color: #fff3e0; /* Fondo naranja muy suave */
-            color: #e65100;
-            border: 1px solid #ffcc80;
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 14px;
-            margin-right: 5px;
-            margin-bottom: 5px;
         }
 
-        /* 3. Footer Legal */
-        .footer-legal {
-            margin-top: 20px;
-            font-size: 9px;
-            color: #95a5a6;
-            line-height: 1.3;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
+        /* --- SECCIÓN NÚMEROS (4 DÍGITOS) --- */
+        .numbers-section { margin-top: 10px; }
+        .numbers-label { 
+            font-size: 8px; font-weight: bold; text-transform: uppercase; 
+            margin-bottom: 5px; 
+            
+            /* CAMBIO: Azul oscuro */
+            color: #1a2a6c; 
         }
-
-        /* --- SECCIÓN VISUAL (DERECHA) --- */
-        .price-tag {
-            background-color: #0d47a1;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 18px;
+        
+        .num-chip {
             display: inline-block;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            background: #ffffff;
+            
+            /* CAMBIO: Texto de números en azul oscuro */
+            color: #1a2a6c; 
+            
+            width: 42px; height: 22px; line-height: 22px;
+            border-radius: 5px;
+            font-size: 11px; font-weight: 900;
+            margin: 0 1px;
+            border-bottom: 2px solid #dce4ec;
         }
 
-        .qr-container img {
-            border: 4px solid #fff;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        /* --- FOOTER --- */
+        .footer-bar {
+            position: absolute;
+            bottom: 0; width: 100%;
+            
+            /* CAMBIO: Fondo sutil transparente oscuro */
+            background: rgba(26, 42, 108, 0.1); 
+            
+            text-align: center; font-size: 8px; font-weight: 900;
+            padding: 5px 0; text-transform: uppercase;
+            
+            /* CAMBIO: Texto oscuro */
+            color: #1a2a6c; 
         }
-        .scan-caption {
-            display: block;
-            margin-top: 8px;
-            font-size: 10px;
-            color: #555;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
     </style>
 </head>
 <body>
 
-    @php
-        // Simulación de datos para lógica (igual que la tuya)
-        $oportunidades = [];
-        while(count($oportunidades) < 5) {
-            $n = str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT);
-            if(!in_array($n, $oportunidades)) $oportunidades[] = $n;
-        }
-        sort($oportunidades);
-    @endphp
-
-    <div class="ticket">
-        
-        <div class="header">
-            <h1>{{ $boleto->rifa->nombre }}</h1>
-            <div class="header-meta">
-                📅 <strong>Sorteo:</strong> {{ date('d/m/Y') }} &nbsp;|&nbsp; 
-                📍 <strong>Sede:</strong> {{ $boleto->rifa->sede }}
-            </div>
-        </div>
-
-        <table class="layout-table">
-            <tr>
-                <td class="col-left">
+    @foreach($boletos->chunk(9) as $paginaBoletos)
+        <div class="page-container">
+            @foreach($paginaBoletos->values() as $index => $boleto)
+                @php
+                    $row = floor($index / 3); 
+                    $col = $index % 3;
+                    $top = $row * 33.33;
+                    $left = $col * 33.33;
                     
-                    <div class="section-folio">
-                        <span class="label">Tu Boleto Ganador</span>
-                        <div class="folio-number">{{ $boleto->folio }}</div>
-                    </div>
+                    // Generamos 5 números de 4 dígitos (1000 a 9999)
+                    $oportunidades = [
+                        rand(1000, 9999), 
+                        rand(1000, 9999), 
+                        rand(1000, 9999), 
+                        rand(1000, 9999), 
+                        rand(1000, 9999)
+                    ];
+                @endphp
 
-                    <div class="section-lucky">
-                        <div class="lucky-grid">
-                            @foreach($oportunidades as $op)
-                                <span class="lucky-badge">{{ $op }}</span>
-                            @endforeach
+                <div class="ticket-box" style="top: {{ $top }}%; left: {{ $left }}%;">
+                    <div class="inner">
+                        
+                        <table class="header-table">
+                            <tr>
+                                <td class="brand-cell">
+                                    {{-- Traemos el nombre y la sede desde la relación del sistema --}}
+                                    <span class="rifa-name">{{ $boleto->rifa->nombre }}</span>
+                                    <span class="rifa-sede">📍 {{ $boleto->rifa->sede ?? 'Sede por confirmar' }}</span>
+                                </td>
+                                <td class="folio-cell">
+                                    <span class="folio-label">Folio Nº</span>
+                                    <span class="folio-num">{{ str_pad($boleto->folio, 5, '0', STR_PAD_LEFT) }}</span>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div class="main-content">
+                            <div class="qr-container">
+                                <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(75)->margin(0)->generate($boleto->codigo_qr)) }}" width="75" height="75">
+                            </div>
+                            
+                            <div class="numbers-section">
+                                <div class="numbers-label">Tus Oportunidades</div>
+                                <div>
+                                    @foreach($oportunidades as $n)
+                                        <span class="num-chip">{{ $n }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="footer-legal">
-                        <strong>ID Único:</strong> {{ substr($boleto->codigo_qr, 0, 16) }}...<br>
-                        Este boleto digital acredita tu participación. Debe presentarse legible para reclamar premios. 
-                        Caducidad: 2 días post-evento.
+                        <div class="footer-bar">¡Gracias por participar!</div>
                     </div>
-                </td>
-
-                <td class="col-right">
-                    
-                    <div class="price-tag">
-                        ${{ number_format($boleto->rifa->precio_boleto, 0) }}
-                    </div>
-
-                    <div class="qr-container">
-                        <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(120)->generate($boleto->codigo_qr)) }}" width="120">
-                    </div>
-                    <span class="scan-caption">Escanear para verificar</span>
-
-                </td>
-            </tr>
-        </table>
-    </div>
+                </div>
+            @endforeach
+        </div>
+    @endforeach
 
 </body>
 </html>
